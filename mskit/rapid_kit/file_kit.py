@@ -4,8 +4,10 @@ import pickle
 import pandas as pd
 
 
-def file_prefix_time():
-    return time.strftime('%Y%m%d', time.localtime())
+def file_prefix_time(with_dash=False):
+    curr_time = time.strftime('%Y%m%d', time.localtime())
+    prefix = curr_time + '-' if with_dash else curr_time
+    return prefix
 
 
 def pd_read_csv_skip_row(file, comment=None, **kwargs):
@@ -21,10 +23,10 @@ def pd_read_csv_skip_row(file, comment=None, **kwargs):
     return pd.read_csv(f, **kwargs)
 
 
-def read_one_col_file(file, header=None):
+def read_one_col_file(file, skiprows=None):
     with open(file, 'r') as f:
         one_col_list = [_.strip('\n') for _ in f.readlines()]
-        one_col_list = one_col_list[1:] if header else one_col_list
+        one_col_list = one_col_list[skiprows:] if skiprows else one_col_list
         while '' in one_col_list:
             one_col_list.remove('')
     return one_col_list

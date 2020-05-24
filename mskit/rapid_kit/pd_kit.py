@@ -1,4 +1,6 @@
 import re
+import pandas as pd
+import numpy as np
 
 
 def select_row_with_target_col(df, ident, colname, return_col_list=None):
@@ -32,12 +34,47 @@ def df_keep_block_first_line(df_with_blocks, filtered_col_name):
     return non_block_df
 
 
-def protein_groups_match(x, protein_list, col='PG.ProteinGroups', delimiter=';'):
+def match_protein_groups(x, protein_list, col='PG.ProteinGroups', delimiter=';'):
     if isinstance(x[col], float):
         return False
     if set(x[col].split(delimiter)) & set(protein_list):
         return True
     return False
+
+
+def split_protein_groups(x, col=None):
+    if not isinstance(x, str):
+        acc = x[col]
+    else:
+        acc = x
+    if pd.isna(acc):
+        return np.nan
+    acc = acc.split(';')[0].strip()
+    return acc
+
+
+def df_split_protein_groups(df, col='PG.ProteinAccessions'):
+    first_protein = df.apply(split_protein_groups, col=col, axis=1)
+    df['FirstProtein'] = first_protein
+    return df
+
+
+def add_protein_type(x, protein_content, col='FirstProtein'):
+    acc = split_protein_groups(x, col=col)
+    if pd.isna(acc):
+        return np.nan
+    for protein_type, acc_list in protein_content.items():
+        if acc in acc_list:
+            return protein_type
+    return 'Others'
+
+
+def df_add_protein_type(df, col, protein_content, used_type=None, return_col='ProteinType'):
+    if isinstance(protein_content, list):
+        protein_content = {used_type: protein_content}
+    type_series = df.apply(add_protein_type, protein_content=protein_content, col=col, axis=1)
+    df[return_col] = type_series
+    return df
 
 
 def filter_prob(

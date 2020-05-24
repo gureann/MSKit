@@ -24,7 +24,7 @@ REQUIRES_PYTHON = '>=3.6.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    'numpy', 'pandas', 'scipy', 'scikit-learn', 'requests', 'matplotlib', 'bioplotkit'
+    'numpy', 'pandas', 'scipy', 'scikit-learn', 'requests', 'matplotlib',
 ]
 
 # What packages are optional?

@@ -12,5 +12,6 @@ Protein description
 包含以下方法
 长度
 TED
+除ted方法外可以直接传入TED类中
 
 """

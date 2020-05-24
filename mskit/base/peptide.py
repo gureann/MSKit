@@ -16,3 +16,38 @@ remove mod
 add mod（随机或指定位点）
 
 """
+
+
+class Peptide(object):
+    def __init__(self):
+        pass
+
+    def get_mod(self):
+        pass
+
+    def mod_num(self):
+        pass
+
+    def get_var_mod(self):
+        pass
+
+    def var_mod_num(self):
+        pass
+
+    def get_fix_mod(self):
+        pass
+
+    def fix_mod_num(self):
+        pass
+
+    def pep_len(self):
+        pass
+
+    def __len__(self):
+        pass
+
+    def ted(self, *args):
+        pass
+
+
+

@@ -21,3 +21,11 @@ def list_dir_with_identification(
         return dir_content_list
     else:
         return [os.path.join(dirname, _) for _ in dir_content_list]
+
+
+def get_workspace(level=0):
+    curr_dir = os.path.abspath('.')
+    work_dir = curr_dir
+    for i in range(level):
+        work_dir = os.path.dirname(work_dir)
+    return work_dir

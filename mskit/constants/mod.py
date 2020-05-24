@@ -31,5 +31,8 @@ class BasicModification:
     ModAA = {
         'Carbamidomethyl': ['C'],
         'Oxidation': ['M'],
-        'Phospho': ['P', 'T', 'S'],
+        'Phospho': ['S', 'T', 'Y'],
     }
+
+    ExtendModAA = ModAA.copy()
+    ExtendModAA['Phospho'].extend(['H', 'R', 'K', 'D', 'G', 'M', 'V', 'P', 'N', 'A'])

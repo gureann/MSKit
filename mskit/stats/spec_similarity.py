@@ -22,7 +22,7 @@ def _get_share_fragment_list(main_fragment_data, test_fragment_data):
         yield temp_main_list, temp_test_list, test_prec
 
 
-def calc_pcc(main_fragment_data, test_fragment_data):
+def frag_pcc(main_fragment_data, test_fragment_data):
     pcc_dict = dict()
     for temp_main_list, temp_test_list, test_prec in _get_share_fragment_list(
             main_fragment_data, test_fragment_data):
@@ -33,7 +33,7 @@ def calc_pcc(main_fragment_data, test_fragment_data):
     return pcc_dict
 
 
-def calc_sa(main_fragment_data, test_fragment_data):
+def frag_sa(main_fragment_data, test_fragment_data):
     sa_dict = dict()
     for temp_main_list, temp_test_list, test_prec in _get_share_fragment_list(
             main_fragment_data, test_fragment_data):
