@@ -311,6 +311,12 @@ class SpectronautLibrary(object):
             _test, _val = train_test_split(_test_val, train_size=test_size, test_size=val_size)
             return self._lib_df[self._lib_df[focus_col].isin(_train)], self._lib_df[self._lib_df[focus_col].isin(_test)], self._lib_df[self._lib_df[focus_col].isin(_val)]
 
+    def check_col_format(self, start_with='_', start_with_num=1, end_with='_', end_with_num=1, normal_char='[A-Z]', special_char=('[', ']'), exclude_char=''):
+        pass
+
+    def find_col_format(self):
+        pass
+
     @staticmethod
     def get_nonredundant_prec_df(lib_df: pd.DataFrame) -> pd.DataFrame:
         return lib_df.drop_duplicates(('PrecursorCharge', 'ModifiedPeptide'))

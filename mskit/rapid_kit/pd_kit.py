@@ -99,7 +99,7 @@ def filter_prob(
     # be NaN
     if '(' not in prob_col_content:
         return True
-    replace_pattern = re.compile(rf'\([^{ident}]+\)')
+    replace_pattern = re.compile(rf'\([^{ident}]+\)')  # TODO 这里好像是对 p h 两个字母单独 find
     ident_find_seq = re.sub(
         replace_pattern,
         '',

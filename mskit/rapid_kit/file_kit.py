@@ -43,13 +43,20 @@ def process_list_or_file(x):
     return target_list
 
 
-def data_dump_load_skip(file_path, data=None):
+def data_dump_load_skip(file_path, data=None, update=False):
     if not os.path.exists(file_path):
-        with open(file_path, 'wb') as f:
-            pickle.dump(data, f)
+        if data is not None:  # Here use 'is not None' because some thing will be wrong when the data is a pd.DataFrame. (Truth value is ambiguous error)
+            with open(file_path, 'wb') as f:
+                pickle.dump(data, f)
+        else:
+            raise FileNotFoundError('No existing file and no input data')
     else:
-        if data:
-            pass
+        if data is not None:
+            if update:
+                with open(file_path, 'wb') as f:
+                    pickle.dump(data, f)
+            else:
+                pass
         else:
             with open(file_path, 'rb') as f:
                 data = pickle.load(f)

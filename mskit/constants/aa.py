@@ -116,3 +116,35 @@ P	-0.124	−0.068	−0.062	−0.054	−0.057	−0.056	0.049'''
         else:
             raise
         return pd.read_csv(io.StringIO(data), sep='\t')
+
+
+class AAInfo:
+    """
+    The most useful class for my error-like memory
+    """
+    AAName = '''Full name	Chinese	3-letter	1-letter
+Alanine	丙氨酸	Ala	A
+Cysteine	半胱氨酸	Cys	C
+Asparticacid	天冬氨酸	Asp	D
+Glutamicacid	谷氨酸	Glu	E
+Phenylalanine	苯丙氨酸	Phe	F
+Glycine	甘氨酸	Gly	G
+Histidine	组氨酸	His	H
+Isoleucine	异亮氨酸	Ile	I
+Lysine	赖氨酸	Lys	K
+Leucine	亮氨酸	Leu	L
+Methionine	甲硫氨酸	Met	M
+Asparagine	天冬酰胺	Asn	N
+Proline	脯氨酸	Pro	P
+Glutamine	谷氨酰胺	Gln	Q
+Arginine	精氨酸	Arg	R
+Serine	丝氨酸	Ser	S
+Threonine	苏氨酸	Thr	T
+Valine	缬氨酸	Val	V
+Tryptophan	色氨酸	Trp	W
+Tyrosine	酪氨酸	Tyr	Y'''
+
+    def get_aa_name(self):
+        import io
+        import pandas as pd
+        return pd.read_csv(io.StringIO(self.AAName), sep='\t')

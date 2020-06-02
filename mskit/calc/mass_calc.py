@@ -20,7 +20,7 @@ def calc_prec_mz(pep: str, charge: int = 2, mod=None) -> float:
 
     pep_mass = 0.
     for _aa in pep.replace('_', ''):
-        pep_mass += Mass.AAMass[_aa]
+        pep_mass += Mass.ResMass[_aa]
     pep_mass += Mass.CompoundMass['H2O']
     pep_mass += Mass.ProtonMass * charge
 
@@ -63,7 +63,7 @@ def calc_fragment_mz(pep, frag_type, frag_num, frag_charge, mod=None) -> float:
 
     if frag_type == 'b':
         for i in range(frag_num):
-            frag_mass += Mass.AAMass[pep[i]]
+            frag_mass += Mass.ResMass[pep[i]]
             if i + 1 in mod_dict:
                 frag_mass += Mass.ModificationMass[mod_dict[i + 1]]
         if 0 in mod_dict:
@@ -73,7 +73,7 @@ def calc_fragment_mz(pep, frag_type, frag_num, frag_charge, mod=None) -> float:
         frag_mass += Mass.CompoundMass['H2O']
         pep_len = len(pep)
         for i in range(pep_len - 1, pep_len - 1 - frag_num, -1):
-            frag_mass += Mass.AAMass[pep[i]]
+            frag_mass += Mass.ResMass[pep[i]]
             if i + 1 in mod_dict:
                 frag_mass += Mass.ModificationMass[mod_dict[i + 1]]
         if frag_num == pep_len:

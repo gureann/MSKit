@@ -1,4 +1,4 @@
-from .aa import AA
+from .aa import AA, AAInfo
 from .base import Base
 from .database import *
 from .enzyme import Enzyme
