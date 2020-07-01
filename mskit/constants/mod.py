@@ -1,4 +1,21 @@
 
+class ModComp:
+    Mods = {
+        'Carbamidomethyl (C)': {'C': 2, 'N': 1, 'O': 1, 'H': 3},
+        'Oxidation (M)': {'O': 1},
+        'Phospho (STY)': {'H': 1, 'P': 1, 'O': 3},
+        'Acetyl (Protein N-term)': {'C': 2, 'O': 1, 'H': 2},
+        'Deamidation (NQ)': {'O': 1, 'N': -1, 'H': -1},
+        'Methyl (KR)': {'C': 1, 'H': 2},
+        'Dimethyl (KR)': {'C': 2, 'H': 4},
+
+    }
+
+    NeutralLoss = {
+        'H2O': {'H': 2, 'O': 1}
+    }
+
+
 class BasicModification:
     # Pre-defined mods, where key means query mod and value is used for assembling queried mod
     StandardMods = {

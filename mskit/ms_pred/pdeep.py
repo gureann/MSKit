@@ -203,3 +203,120 @@ class pDeepSpectronaut(SpectronautLibrary):
                 continue
             trainset_df = trainset_df.append(current_prec_info, ignore_index=True)
         trainset_df.to_csv(output_path, sep='\t', index=False)
+
+
+def extract_bracket(str_with_bracket):
+    bracket_start = [left_bracket.start() for left_bracket in re.finditer('\(', str_with_bracket)]
+    bracket_end = [right_bracket.start() for right_bracket in re.finditer('\)', str_with_bracket)]
+    return bracket_start, bracket_end
+
+
+mod_dict = {'M(ox)': 'Oxidation[M]',
+            'Y(ph)': "Phospho[Y]",
+            'S(ph)': "Phospho[S]",
+            'T(ph)': "Phospho[T]",
+            }
+
+
+def pdeep_mod_extraction(mod_pep):
+    mod_pep = mod_pep.replace('_', '')
+    modinfo = ''
+    mod_start, mod_end = extract_bracket(mod_pep)
+    mod_len = 0
+    for mod_site in zip(mod_start, mod_end):
+        mod_type = mod_pep[mod_site[0] - 1: mod_site[1] + 1].replace(' ', '')
+        mod_type = mod_dict[mod_type]
+        modinfo += '{mod_site},{mod_type};'.format(mod_site=mod_site[0] - mod_len, mod_type=mod_type)
+        mod_len += (mod_site[1] - mod_site[0] + 1)
+    return modinfo
+
+
+def _plabel_from_mq(x):
+    ion_type_list = ['b', 'b-NH3', 'b-H2O', 'b-ModLoss', 'y', 'y-NH3', 'y-H2O', 'y-ModLoss']
+    plabel_title = ['spec', 'peptide', 'modinfo', *ion_type_list]
+
+    spec_name = '{}.{}.{}.{}.0.dta'.format(x['Raw file'], x['Scan number'], x['Scan number'], x['Charge'])
+    pep = x['Sequence']
+    mod_pep = x['Modified sequence']
+    mod_info = pdeep_mod_extraction(mod_pep)
+
+    ions = x['Matches']
+    intens = x['Intensities']
+    inten_dict = dict(zip(ion_type_list, [''] * 8))
+
+    ion_intens_list = list(zip(ions.split(';'), intens.split(';')))
+    b_ion_info = [_ for _ in ion_intens_list if _[0].startswith('b')]
+    y_ion_info = [_ for _ in ion_intens_list if _[0].startswith('y')]
+
+    for diff_ion_info in [b_ion_info, y_ion_info]:
+        current_num = 0
+        _mod_start = False
+        _second_mod_start = False
+        for ion, inten in diff_ion_info:
+
+            if '*' in ion:
+                if not _mod_start:
+                    current_num = 0
+                    _mod_start = True
+            if '-' in ion:
+                if _mod_start:
+                    continue
+
+            ion_type, ion_num = re.findall('([by])(\d+)', ion)[0]
+            ion_num = int(ion_num)
+
+            re_charge = re.findall('\((\d)\+\)', ion)
+            if re_charge:
+                ion_charge = re_charge[0]
+            else:
+                ion_charge = '1'
+
+            if ion_num <= current_num and '*' in ion:
+                _second_mod_start = True
+                continue
+            if '*' in ion and _second_mod_start:
+                continue
+            current_num = ion_num
+
+            tag = ion_type
+            if '*' in ion:
+                tag += '-ModLoss'
+            elif '-' in ion:
+                tag += '-{}'.format(re.findall('-(.+)', ion)[0])
+
+            inten_dict[tag] += '{}{}{}+{},{};'.format(ion_type,
+                                                      ion_num,
+                                                      '-' + tag.split('-')[1] if '-' in tag else '',
+                                                      ion_charge,
+                                                      inten
+                                                      )
+
+    one_psm_data = [spec_name, pep, mod_info, *[inten_dict[_] for _ in ion_type_list]]
+    return one_psm_data
+
+
+"""  NOTICE This one is for MQ > 1.6, in which the modifications added in the peptide sequence was set as Phospho (STY) but not (ph) in 1.5
+
+def extract_bracket(str_with_bracket):
+    bracket_start = [left_bracket.start() for left_bracket in re.finditer('\(', str_with_bracket)][::2]
+    bracket_end = [right_bracket.start() for right_bracket in re.finditer('\)', str_with_bracket)][1::2]
+    return bracket_start, bracket_end
+
+mod_dict2 = {'M(Oxidation (M))': 'Oxidation[M]',
+            'Y(Phospho (STY))' : "Phospho[Y]",
+            'S(Phospho (STY))' : "Phospho[S]",
+            'T(Phospho (STY))' : "Phospho[T]",}
+
+def pdeep_mod_extraction(mod_pep):
+    mod_pep = mod_pep.replace('_', '')
+    modinfo = ''
+    mod_start, mod_end = extract_bracket(mod_pep)
+    mod_len = 0
+    for mod_site in zip(mod_start, mod_end):
+        mod_type = mod_pep[mod_site[0] - 1: mod_site[1] + 1]# .replace(' ', '')
+        mod_type = mod_dict2[mod_type]
+        modinfo += '{mod_site},{mod_type};'.format(mod_site=mod_site[0] - mod_len, mod_type=mod_type)
+        mod_len += (mod_site[1] - mod_site[0] + 1)
+    return modinfo
+"""
+

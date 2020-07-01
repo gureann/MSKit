@@ -1,3 +1,19 @@
+def element_aa2res(aa_comp: dict) -> dict:
+    res_comp = aa_comp.copy()
+    res_comp['H'] -= 2
+    res_comp['O'] -= 1
+    return res_comp
+
+
+class AAComp:
+    AAElement = {
+        'A': {'C': 3, 'N': 1, 'O': 2, 'H': 7},
+    }
+
+
+class ResComp:
+    ResElement = {aa: element_aa2res(aa_comp=aa_comp) for aa, aa_comp in AAComp.AAElement.items()}
+
 
 class AA:
     AA_3to1 = {

@@ -23,11 +23,9 @@ def semicolon_combination(s1, s2, keep_order=False):
     return ';'.join(unique_s)
 
 
-def extract_bracket(str_with_bracket):
-    bracket_start = [left_bracket.start()
-                     for left_bracket in re.finditer(r'\[', str_with_bracket)]
-    bracket_end = [right_bracket.start()
-                   for right_bracket in re.finditer(']', str_with_bracket)]
+def extract_bracket(str_with_bracket, ):  # Need a parameter to choose to use () or [] or others (by manurally define?) and a parameter to skip how many additional brackets
+    bracket_start = [left_bracket.start() for left_bracket in re.finditer('\(', str_with_bracket)]  # Add [::2] if there is one additional bracket in the expected one
+    bracket_end = [right_bracket.start() for right_bracket in re.finditer('\)', str_with_bracket)]  # Add [1::2] if add the additional operation at the last step
     return bracket_start, bracket_end
 
 
