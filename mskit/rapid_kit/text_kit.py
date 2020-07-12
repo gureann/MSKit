@@ -9,14 +9,14 @@ def get_title_dict(title_content: str) -> dict:
     return title_dict
 
 
-def semicolon_combination(s1, s2, keep_order=False):
+def semicolon_combination(*sn, keep_order=False):
     """
     This will combine two strings with semicolons and drop duplication
     Example: s1='Q1;Q2', s2='Q2;Q3' -> 'Q1;Q2;Q3'
     Note that the order may change if keep_order=False
     """
-    s_list = map(lambda _: _.strip(';').split(';'), (s1, s2))
-    flatten_s = sum(s_list, [])
+    s_list = map(lambda _: _.strip(';').split(';'), sn)
+    flatten_s = list(filter(lambda x: True if x else False, sum(s_list, [])))
     unique_s = list(set(flatten_s))
     if keep_order:
         unique_s = sorted(unique_s, key=flatten_s.index)

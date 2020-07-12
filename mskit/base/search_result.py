@@ -5,3 +5,11 @@
 
 从base result继承两个分别用于RT和intensity的类
 """
+
+
+class SearchResult(object):
+    def __init__(self):
+        self.result_df = None
+
+    def __getitem__(self, item):
+        return self.result_df[item]
