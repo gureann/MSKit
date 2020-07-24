@@ -89,17 +89,26 @@ def filter_prob(
     :param find_col: colname of col contains sequence with determined label. Example: col 'Modified sequence' _(ac)AAAAAAAAAAAAGDS(ph)DS(ph)WDADTFSM(ox)EDPVRK_
     :param prob_col: colname of col contains sequence with probability. Example: col 'Phospho (STY) Probabilities' AAAAAAAAAAAAGDS(0.876)DS(0.887)WDADT(0.161)FS(0.077)MEDPVRK
     """
+    # TODO 这里改成所有含 Probability 的列都 filter，单列filter可选
+
     find_col_content = x[find_col]
     # To avoid error if there is no mod in the seq. 'Modified sequence' will
     # have no Parentheses
-    if '(' not in find_col_content:
+    if f'({ident})' not in find_col_content:
         return True
     prob_col_content = x[prob_col]
     # To avoid error if there is no target var mod in the seq. Prob col will
     # be NaN
-    if '(' not in prob_col_content:
+
+    if pd.isna(prob_col_content):
+        print('sth.')
         return True
-    replace_pattern = re.compile(rf'\([^{ident}]+\)')  # TODO 这里好像是对 p h 两个字母单独 find
+
+    if f'(' not in prob_col_content:
+        return True
+
+    # replace_pattern = re.compile(rf'\([^{ident}]+\)')  # TODO 这里好像是对 p h 两个字母单独 find
+    replace_pattern = re.compile(rf'\((?!{ident}).+?\)')  # TODO 这里好像是对 p h 两个字母单独 find
     ident_find_seq = re.sub(
         replace_pattern,
         '',
