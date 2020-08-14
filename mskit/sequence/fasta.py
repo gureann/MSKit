@@ -2,6 +2,7 @@ from .ted import TED
 
 import os
 import re
+import numpy as np
 
 from mskit import rapid_kit
 
@@ -110,6 +111,9 @@ class FastaParser(object):
                 self.raw_content = fasta_handle.read()
         return self.raw_content
 
+    def get_all_title(self):
+        pass
+
     def init_fasta(self, method='re'):
         if not self.raw_content:
             self.get_raw_content()
@@ -134,13 +138,18 @@ class FastaParser(object):
         """
         seq_line:
             None: Write one seq to one line
-            60: Write one seq to multilines to keep the numebr of char in one line == 60
+            80: Write one seq to multilines to keep the numebr of char in one line == 80
             other integer: Keep number of char equal to the customed number
         """
         with open(file_path, 'w') as f:
-            for title, seq in self.raw_title_dict:
-                f.write(title + '\n')
-                f.write(seq + '\n')
+            if seq_line:
+                for title, seq in self.raw_title_dict.items():
+                    f.write(title + '\n')
+                    f.write(''.join([seq[_ * seq_line: (_ + 1) * seq_line] + '\n' for _ in range(int(np.ceil(len(seq) / seq_line)))]))
+            else:
+                for title, seq in self.raw_title_dict:
+                    f.write(title + '\n')
+                    f.write(seq + '\n')
 
     def one_protein_generator(self):
         """

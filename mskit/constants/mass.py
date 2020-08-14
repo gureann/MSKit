@@ -19,6 +19,15 @@ class ElementMass:
     }
 
 
+class CompoundMass:
+    CompoundMass = {
+        'H2O': ElementMass.Mono['H'] * 2 + ElementMass.Mono['O'],
+        'NH3': ElementMass.Mono['N'] + ElementMass.Mono['H'] * 3,
+        'H3PO4': ElementMass.Mono['H'] * 3 + ElementMass.Mono['P'] + ElementMass.Mono['O'] * 4,
+        'HPO3': ElementMass.Mono['H'] + ElementMass.Mono['P'] + ElementMass.Mono['O'] * 3,
+    }
+
+
 class Mass:
     ResMass = {'A': 71.0371138,
                'C_': 103.00918,
@@ -46,29 +55,21 @@ class Mass:
     ProtonMass = 1.0072766  # H+
     IsotopeMass = 1.003
 
-    ElementMass = {'C': 12.,
-                   'H': 1.0078250321,
-                   'O': 15.9949146221,
-                   'N': 14.0030740052,
-                   'P': 30.973762,
-                   }
+    ModMass = {'Carbamidomethyl': 57.0214637,
+               'C[Carbamidomethyl]': 57.0214637,
+               'Oxidation': ElementMass.Mono['O'],
+               'M[Oxidation]': ElementMass.Mono['O'],
+               'Phospho': CompoundMass.CompoundMass['HPO3'],
+               'TMT': 229.1629,
+               '1': 147.0353992,  # M[16]
+               '2': 167.03203,  # S[80]
+               '3': 181.04768,  # T[80]
+               '4': 243.06333,  # Y[80]
+               }
 
-    CompoundMass = {
-        'H2O': ElementMass['H'] * 2 + ElementMass['O'],
-        'NH3': ElementMass['N'] + ElementMass['H'] * 3,
+    ModLossMass = {
+        'H3PO4': CompoundMass.CompoundMass['H3PO4']
     }
-
-    ModificationMass = {'Carbamidomethyl': 57.0214637,
-                        'C[Carbamidomethyl]': 57.0214637,
-                        'Oxidation': ElementMass['O'],
-                        'M[Oxidation]': ElementMass['O'],
-                        'Phospho': 0,
-                        'TMT': 229.1629,
-                        '1': 147.0353992,  # M[16]
-                        '2': 167.03203,  # S[80]
-                        '3': 181.04768,  # T[80]
-                        '4': 243.06333,  # Y[80]
-                        }
 
 # C[Carbamidomethyl] = 103.00918 + 57.0214637
 # M[Oxidation] = 131.04048 + 16

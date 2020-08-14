@@ -20,7 +20,7 @@ URL = __info__.__repository__
 EMAIL = __info__.__email__
 AUTHOR = __info__.__author__
 VERSION = __info__.__version__
-REQUIRES_PYTHON = '>=3.6.0'
+REQUIRES_PYTHON = '>=3.7.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [

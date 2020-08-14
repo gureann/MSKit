@@ -2,11 +2,44 @@ from ._pdeep_constant import BasicpDeepInfo
 from ._pdeep_constant import MOD
 
 import re
+import os
 from collections import defaultdict
 import pandas as pd
 
 from mskit import rapid_kit
 from mskit.post_analysis.post_spectronaut import SpectronautLibrary
+
+
+def intprec_to_pdeep_test(intprec_list):
+    """
+    从 intprec 转换为 pDeep2 的 test input
+    intprec: 如 DKEAIQA4SESLMTSAPK.2
+    pDeep2 test input 格式为
+        peptide modification    charge
+        FRTPSFLK    3,Phospho[T];5,Phospho[S];  2
+        ...
+    """
+    title = ['peptide', 'modification',	'charge']
+    int_to_pdeep2_mod = {
+        'C': 'Carbamidomethyl[C]',
+        '1': 'Oxidation[M]',
+        '2': 'Phospho[S]',
+        '3': 'Phospho[T]',
+        '4': 'Phospho[Y]',
+    }
+    pdeep_test_data_list = []
+    for each_intprec in intprec_list:
+        intseq, charge = each_intprec.split('.')
+        stripped_pep = intseq.replace('1', 'M').replace('2', 'S').replace('3', 'T').replace('4', 'Y')
+        mod_info = ''
+        for _ in re.finditer('[C1234]', intseq):
+            site = _.end()
+            mod_char = _.group()
+            mod = int_to_pdeep2_mod[mod_char]
+            mod_info += f'{site},{mod};'
+        pdeep_test_data_list.append([stripped_pep, mod_info, charge])
+    pdeep_test_df = pd.DataFrame(pdeep_test_data_list, columns=title)
+    return pdeep_test_df
 
 
 def extract_pdeep_mod(mod_pep, mod_ident='bracket', mod_trans=True):
@@ -86,36 +119,61 @@ def plabel_one_row_dict(prec, inten_dict: dict):
     return plabel_row_dict
 
 
-def read_pdeep_pred(pdeep_pred, mod_processor=None):
-    """
-    This receives a prediction result file from pDeep
-    Returns a dict with format: {'prec': {'frag_1': inten_1, 'frag_2': inten_2, ...}}
-    Example: {'_AAAAAAAA_.2': {'b1+1-noloss': 15.01, ...}}
-    """
-    _prec_inten_dict = dict()
-    with open(pdeep_pred, 'r') as f:
-        for each_row in f:
-            if each_row.startswith('BEGIN IONS'):
-                _one_inten_dict = dict()
-            elif each_row.startswith('TITLE'):
-                _prec_info = each_row.strip('\n').split('=')[1]  # 'SQESEELVVAGGGGLR|1,Phospho[S];|2'
-                if mod_processor:
-                    _prec_info = _prec_info.split('|')
-                    _mod_pep = mod_processor.add_mod(_prec_info[0], _prec_info[1])
-                    _prec = rapid_kit.assemble_prec(_mod_pep, _prec_info[2])
+def read_pdeep_result(pdeep_result, modloss_name='H3PO4'):
+    mod_dict = {'Carbamidomethyl[C]': '[Carbamidomethyl (C)]',
+                'Oxidation[M]': '[Oxidation (M)]',
+                'Phospho[S]': '[Phospho (STY)]',
+                'Phospho[T]': '[Phospho (STY)]',
+                'Phospho[Y]': '[Phospho (STY)]',
+                }
+    with open(os.path.abspath(pdeep_result), 'r') as pdeep_handle:
+        predicted_fragment_data = dict()
+        for each_line in pdeep_handle:
+            each_line = each_line.strip('\n')
+            if each_line == 'BEGIN IONS':
+                fragment_dict = dict()
+            elif each_line == 'END IONS':
+                predicted_fragment_data[prec] = fragment_dict
+            else:
+                if each_line.startswith('TITLE'):
+                    split_pep_title = each_line.replace('TITLE=', '').split('|')
+                    stripped_pep = split_pep_title[0]
+                    mod = split_pep_title[1].strip(';')
+                    charge = split_pep_title[2]
+
+                    if not mod:
+                        prec = '_{}_.{}'.format(stripped_pep, charge)
+                    else:
+                        mod_pep = ''
+                        previous_mod_site = 0
+                        for each_mod in mod.split(';'):
+                            each_mod_info = each_mod.split(',')
+                            mod_site = int(each_mod_info[0])
+                            mod_type = mod_dict[each_mod_info[1]]
+                            mod_pep += stripped_pep[previous_mod_site: mod_site] + mod_type
+                            previous_mod_site = mod_site
+                        mod_pep += stripped_pep[previous_mod_site:]
+                        prec = '_{}_.{}'.format(mod_pep, charge)
+                elif each_line[0].isdigit():
+                    split_frag_inten_line = each_line.split(' ')
+                    frag_inten = round(float(split_frag_inten_line[1]), 5) * 100
+                    if frag_inten < 0.01:
+                        continue
+                    frag_mz = split_frag_inten_line[0]
+                    frag_name = split_frag_inten_line[2]
+
+                    frag_type, frag_num, loss_type, frag_c = re.findall('([by])(\d+)-?(.+)?\+(\d)', frag_name)[0]
+                    if int(frag_num) <= 2:
+                        continue
+                    new_frag_name = f'{frag_type}{frag_num}+{frag_c}'
+                    if not loss_type:
+                        new_frag_name += '-noloss'
+                    else:
+                        new_frag_name += f'-{loss_type}' if loss_type != 'ModLoss' else f'-{modloss_name}'
+                    fragment_dict[new_frag_name] = (frag_mz, frag_inten)
                 else:
-                    _prec = _prec_info
-            elif each_row[0].isdigit():
-                _one_inten_info = each_row.strip('\n').split(' ')
-                _frag = _one_inten_info[2]
-                re_find_frag = re.findall('([abcxyz])(\\d+)-?(.*)\\+(\\d+)', _frag)
-                frag_type, frag_num, frag_loss, frag_charge = re_find_frag[0]
-                frag_loss = frag_loss if frag_loss else 'noloss'
-                _frag_name = f'{frag_type}{frag_num}+{frag_charge}-{frag_loss}'
-                _one_inten_dict[_frag_name] = float(_one_inten_info[1])
-            elif each_row.startswith('END IONS'):
-                _prec_inten_dict[_prec] = _one_inten_dict
-    return _prec_inten_dict
+                    continue
+    return predicted_fragment_data
 
 
 def read_inten_from_plabel(_plabel_file):

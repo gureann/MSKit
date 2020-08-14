@@ -108,7 +108,7 @@ def filter_prob(
         return True
 
     # replace_pattern = re.compile(rf'\([^{ident}]+\)')  # TODO 这里好像是对 p h 两个字母单独 find
-    replace_pattern = re.compile(rf'\((?!{ident}).+?\)')  # TODO 这里好像是对 p h 两个字母单独 find
+    replace_pattern = re.compile(rf'\((?!{ident}).+?\)')
     ident_find_seq = re.sub(
         replace_pattern,
         '',

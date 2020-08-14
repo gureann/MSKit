@@ -44,6 +44,11 @@ def str_mod_to_list(mod):
     return mod_list
 
 
+def check_list_len_in_dict(checked_dict):
+    for name, one_list in checked_dict.items():
+        print(f'{name}: {len(one_list)}')
+
+
 class XmlListConfig(list):
     def __init__(self, x_list):
         super(XmlListConfig, self).__init__()

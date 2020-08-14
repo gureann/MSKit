@@ -8,6 +8,27 @@ Spectronaut -> SN
 """
 
 
+class LossType(object):
+    SN_to_Readable = {
+        'noloss': 'Noloss',
+        'H3PO4': '1,H3PO4',
+        'H2O': '1,H2O',
+        '1(+H2+O)1(+H3+O4+P)': '1,H2O;1,H3PO4',
+        '2(+H3+O4+P)': '2,H3PO4',
+        'NH3': '1,NH3',
+        '1(+H3+N)1(+H3+O4+P)': '1,NH3;1,H3PO4',
+        '1(+H2+O)2(+H3+O4+P)': '1,H2O;2,H3PO4',
+        '1(+H9+N+O8+P2)': '1,NH3;2,H3PO4',
+        '3(+H3+O4+P)': '3,H3PO4',
+        '1(+H2+O)3(+H3+O4+P)': '1,H2O;3,H3PO4',
+        '1(+H3+N)3(+H3+O4+P)': '1,NH3;3,H3PO4',
+        '4(+H3+O4+P)': '4,H3PO4',
+        '1(+H2+O)4(+H3+O4+P)': '1,H2O;4,H3PO4',
+    }
+
+    Readable_to_SN = {v: k for k, v in SN_to_Readable.items()}
+
+
 class BasicModInfo(object):
     ModDict_new = {'C': 'C[Carbamidomethyl (C)]',
                    'M': 'M[Oxidation (M)]'}

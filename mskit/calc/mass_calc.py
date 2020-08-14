@@ -1,4 +1,6 @@
-from mskit.constants.mass import Mass
+import re
+
+from mskit.constants.mass import CompoundMass, Mass
 from mskit.rapid_kit import split_prec, split_fragment_name
 
 
@@ -14,21 +16,35 @@ def calc_prec_mz(pep: str, charge: int = 2, mod=None) -> float:
     :param charge: precursor charge
     :param mod: str like 1,Carbamidomethyl;3,Oxidation; or list like [(1, 'Carbamidomethyl'), (3, 'Oxidation')]
     :return: Precursor m/z
+
+    TODO 直接给出多少个哪种修饰，或带位点的修饰，或肽段直接带有修饰（需要哪个参数说明）
     """
     if '.' in pep:
         pep, charge = split_prec(pep)
+    if '[' in pep:
+        stripped_pep = re.sub(r'\[.+?\]', '', pep).replace('_', '')
+        mod_in_pep = re.findall(r'\[(.+?) \(.+?\)\]', pep)
+    else:
+        stripped_pep = pep
+        mod_in_pep = None
 
     pep_mass = 0.
-    for _aa in pep.replace('_', ''):
-        pep_mass += Mass.ResMass[_aa]
-    pep_mass += Mass.CompoundMass['H2O']
+    for aa in stripped_pep:
+        pep_mass += Mass.ResMass[aa]
+    pep_mass += CompoundMass.CompoundMass['H2O']
     pep_mass += Mass.ProtonMass * charge
 
     if mod:
         if isinstance(mod, str):
             mod = [_.split(',') for _ in mod.strip(';').split(';')]
         for _each_mod in list(zip(*mod))[1]:
-            pep_mass += Mass.ModificationMass[_each_mod] if _each_mod != 'Carbamidomethyl' else 0.
+            pep_mass += Mass.ModMass[_each_mod] if _each_mod != 'Carbamidomethyl' else 0.
+    if mod_in_pep:
+        for each_mod in mod_in_pep:
+            if 'Carbamidomethyl' in each_mod:
+                continue
+            else:
+                pep_mass += Mass.ModMass[each_mod]
     return pep_mass / charge
 
 

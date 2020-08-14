@@ -16,7 +16,25 @@ class SpectronautLibrary(object):
     """
     self._library_storage is used for the original library dataframe storage so that self._lib_df can be restored when it is filtered.
     """
-    def __init__(self, spectronaut_version=12):
+
+    LibBasicCols = [
+        'PrecursorCharge', 'IntModifiedPeptide',
+        'ModifiedPeptide', 'StrippedPeptide', 'iRT',
+        'LabeledPeptide', 'PrecursorMz',
+        'FragmentLossType', 'FragmentNumber', 'FragmentType', 'FragmentCharge', 'FragmentMz',
+        'RelativeIntensity',
+    ]
+    FragInfoCols = [
+        'FragmentLossType',
+        'FragmentNumber',
+        'FragmentType',
+        'FragmentCharge',
+        'FragmentMz',
+        'RelativeIntensity',
+    ]
+    LibBasicCols_WithoutFrag = rapid_kit.subtract_list(LibBasicCols, FragInfoCols)
+
+    def __init__(self, lib_path=None, spectronaut_version=12):
         self._spectronaut_version = spectronaut_version
         self._Mod = ModType(self._spectronaut_version)
 
@@ -29,13 +47,17 @@ class SpectronautLibrary(object):
         self._modpep = None
         self._stripped_pep = None
 
+        if lib_path:
+            self.set_library(lib_path)
+            self._lib_path = lib_path
+
     def set_library(self, lib):
         if isinstance(lib, pd.DataFrame):
             self._lib_df = lib
         else:
             if os.path.isfile(lib):
                 self._lib_path = lib
-                self._lib_df = pd.read_csv(self._lib_path, sep='\t')
+                self._lib_df = pd.read_csv(self._lib_path, sep='\t', low_memory=False)
             else:
                 raise
 
@@ -45,6 +67,27 @@ class SpectronautLibrary(object):
 
     def __len__(self):
         return len(self._lib_df)
+
+    def __add__(self, other):
+        """
+        Directly add the two libraries with no further operation
+        """
+        pass
+
+    def __iadd__(self, other):
+        pass
+
+    def __mul__(self, other):
+        """
+        Let the fragments in two libraries combined together
+        """
+        pass
+
+    def __getitem__(self, item):
+        return self._lib_df[item]
+
+    def __setitem__(self, key, value):
+        self._lib_df[key] = value
 
     def backtrack_library(self):
         """
@@ -63,6 +106,68 @@ class SpectronautLibrary(object):
     def add_prec(self):
         if 'Precursor' not in self._lib_df:
             self._lib_df['Precursor'] = get_lib_prec(self._lib_df)
+
+    def add_intpep(self):
+        str_mod_to_int_dict = {
+            'C[Carbamidomethyl (C)]': 'C',
+            'M[Oxidation (M)]': '1',
+            'S[Phospho (STY)]': '2',
+            'T[Phospho (STY)]': '3',
+            'Y[Phospho (STY)]': '4',
+        }
+
+        def trans_str_mod_to_int(pep):
+            pep = pep.replace('_', '')
+            for mod, int_mod in str_mod_to_int_dict.items():
+                pep = pep.replace(mod, int_mod)
+            return pep
+
+        self._lib_df['IntPep'] = self._lib_df['ModifiedPeptide'].apply(trans_str_mod_to_int)
+
+    def add_intprec(self):
+        self._lib_df['IntPrec'] = self._lib_df['IntPep'] + '.' + self._lib_df['PrecursorCharge'].astype(str)
+
+    def add_first_protein(self, x, target_col='ProteinGroups', add_col='FirstProtein'):
+        def split_protein(x, col):
+            acc = x[col]
+            if pd.isna(acc):
+                return np.nan
+            acc = acc.split(';')[0].strip()
+            return acc
+        self._lib_df[add_col] = self._lib_df.apply(split_protein, col=target_col, axis=1)
+
+    def add_protein_type(self, type_dict, target_col='ProteinGroups', add_col='ProteinType', add_method=lambda x: x.split(';')[0], split_sign=';'):
+        """
+        lambda x: x for first protein
+        lambda x: x.split(';')[0] for ProteinGroups
+        'All' to map type dict to all proteins in the cell. This needs the param split_sign to define the sign for splitting proteins.
+        """
+        pass
+
+    def add_predefined_features(self, feature_list=None):
+        """
+        :param feature_list TODO 最后应该把所有feature单独添加，这里传一个list来选择添加哪些feature
+        """
+        self.add_prec()
+        self.add_intpep()
+        self.add_intprec()
+
+    def get_all_mods(self):
+        a = []
+        for __ in [re.findall(r'\[.+?\]', _) for _ in list(set(self._lib_df['ModifiedPeptide']))]:
+            for b in __:
+                if b not in a:
+                    a.append(b)
+        return a
+
+    def get_frag_inten(self) -> dict:
+        lib_spec = dict()
+        for prec, df in self._lib_df.groupby('Precursor'):
+            frag_dict = dict()
+            for row_index, row in df.iterrows():
+                frag_dict[f'{row["FragmentType"]}{row["FragmentNumber"]}+{row["FragmentCharge"]}-{row["FragmentLossType"]}'] = row['RelativeIntensity']
+            lib_spec[prec] = frag_dict
+        return lib_spec
 
     def remove_library_add_col(self):
         new_cols = [_ for _ in self._lib_df.columns if _ in self._initial_lib_title]
