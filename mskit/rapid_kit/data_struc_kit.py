@@ -1,3 +1,5 @@
+import os
+
 
 def sum_set_in_list(list_with_sets, return_type='set'):
     summed_list = sum([list(each_set) for each_set in list_with_sets], [])
@@ -44,9 +46,18 @@ def str_mod_to_list(mod):
     return mod_list
 
 
-def check_list_len_in_dict(checked_dict):
-    for name, one_list in checked_dict.items():
-        print(f'{name}: {len(one_list)}')
+def check_value_len_of_dict(checked_dict, thousands_separator=True):
+    for k, v in checked_dict.items():
+        v_len = len(v)
+        if thousands_separator:
+            print(f'{k}: {format(v_len, ",")}')
+        else:
+            print(f'{k}: {v_len}')
+
+
+def print_basename_in_dict(path_dict):
+    for name, path in path_dict.items():
+        print(f'{name}: {os.path.basename(path)}')
 
 
 class XmlListConfig(list):

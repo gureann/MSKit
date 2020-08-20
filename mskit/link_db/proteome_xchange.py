@@ -15,7 +15,7 @@ class PrideFTPDownloader(object):
         self.fileinfo_dict = None
         self.fileinfo_df = None
 
-        self._exclusion = None
+        self.excluded_files = None
         self._ftp = FTP()
 
     def get_project_id(self):
@@ -46,10 +46,10 @@ class PrideFTPDownloader(object):
         return self.filelist
 
     def get_exclusion(self):
-        return self._exclusion
+        return self.excluded_files
 
     def set_exclusion(self, exclusion):
-        self._exclusion = exclusion
+        self.excluded_files = exclusion
 
     exclusion = property(get_exclusion, set_exclusion, doc='''''')
 
@@ -102,3 +102,12 @@ class PrideFTPDownloader(object):
         except AttributeError:
             self._ftp.close()
 
+    @staticmethod
+    def asp_cmd(year, month, project_id, file_name, target_address):
+        ascp_cmd = ' '.join([r'ascp',
+                             r'-QT -l 300m -P33001 -i',
+                             r'asperaweb_id_dsa.openssh',
+                             r'prd_ascp@fasp.ebi.ac.uk:pride/data/archive/{year}/{month}/{project_id}/{file_name}'.format(
+                                 year=year, month=month, project_id=project_id, file_name=file_name),
+                             rf'{target_address}',
+                             ])

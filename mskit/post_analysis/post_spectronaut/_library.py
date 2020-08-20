@@ -34,7 +34,7 @@ class SpectronautLibrary(object):
     ]
     LibBasicCols_WithoutFrag = rapid_kit.subtract_list(LibBasicCols, FragInfoCols)
 
-    def __init__(self, lib_path=None, spectronaut_version=12):
+    def __init__(self, lib=None, spectronaut_version=12):
         self._spectronaut_version = spectronaut_version
         self._Mod = ModType(self._spectronaut_version)
 
@@ -47,9 +47,10 @@ class SpectronautLibrary(object):
         self._modpep = None
         self._stripped_pep = None
 
-        if lib_path:
-            self.set_library(lib_path)
-            self._lib_path = lib_path
+        if lib is not None:
+            self.set_library(lib)
+            if isinstance(lib, str):
+                self._lib_path = lib
 
     def set_library(self, lib):
         if isinstance(lib, pd.DataFrame):
@@ -63,7 +64,6 @@ class SpectronautLibrary(object):
 
         self._initial_lib_title = self._lib_df.columns
         self._library_storage = self._lib_df.copy()
-        self.add_prec()
 
     def __len__(self):
         return len(self._lib_df)
@@ -185,6 +185,24 @@ class SpectronautLibrary(object):
         if remove_add_col:
             self.remove_library_add_col()
         self._lib_df.to_csv(output_path, index=False, sep='\t')
+
+    def split_library(self, split_size=(0.9, 0.1), split_by='ModifiedPeptide', save=None, seed=0):
+        by_list = self._lib_df[split_by].drop_duplicates().tolist()
+        if len(split_size) == 2:
+            train_list, test_list = train_test_split(by_list, train_size=split_size[0], test_size=split_size[1], random_state=seed)
+            if save is None:
+                return (self._lib_df[self._lib_df[split_by].isin(train_list)],
+                        self._lib_df[self._lib_df[split_by].isin(test_list)])
+            else:
+                pass
+        if len(split_size) == 3:
+            size_outof_train = split_size[1] + split_size[2]
+            train_list, val_test_list = train_test_split(by_list, train_size=split_size[0], test_size=size_outof_train, random_state=seed)
+            val_size, test_size = split_size[1] / size_outof_train, split_size[2] / size_outof_train
+            val_list, test_list = train_test_split(val_test_list, train_size=val_size, test_size=test_size, random_state=seed)
+            return (self._lib_df[self._lib_df[split_by].isin(train_list)],
+                    self._lib_df[self._lib_df[split_by].isin(val_list)],
+                    self._lib_df[self._lib_df[split_by].isin(test_list)])
 
     def library_basic_info(self):
         """
@@ -400,21 +418,6 @@ class SpectronautLibrary(object):
             target_list = target_protein_list
         match_target = re.compile('|'.join(['(' + _ + ')' for _ in target_list]))
         self._lib_df = self._lib_df[~(self._lib_df['ProteinGroups'].str.contains(match_target))]
-
-    def split_library(self, train_test_val=(0.8, 0.1, 0.1), focus_col='ModifiedPeptide'):
-        split_content = self._lib_df[focus_col].drop_duplicates().tolist()
-        train_size = train_test_val[0]
-        test_size = train_test_val[1]
-        if len(train_test_val) == 2:
-            _train, _test = train_test_split(split_content, train_size=train_size, test_size=test_size)
-            return self._lib_df[self._lib_df[focus_col].isin(_train)], self._lib_df[self._lib_df[focus_col].isin(_test)]
-        if len(train_test_val) == 3:
-            val_size = train_test_val[2]
-            _train, _test_val = train_test_split(split_content, train_size=train_size, test_size=test_size + val_size)
-            test_val_size = test_size + val_size
-            test_size, val_size = test_size / test_val_size, val_size / test_val_size
-            _test, _val = train_test_split(_test_val, train_size=test_size, test_size=val_size)
-            return self._lib_df[self._lib_df[focus_col].isin(_train)], self._lib_df[self._lib_df[focus_col].isin(_test)], self._lib_df[self._lib_df[focus_col].isin(_val)]
 
     def check_col_format(self, start_with='_', start_with_num=1, end_with='_', end_with_num=1, normal_char='[A-Z]', special_char=('[', ']'), exclude_char=''):
         pass

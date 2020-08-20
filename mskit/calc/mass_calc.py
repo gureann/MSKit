@@ -4,7 +4,7 @@ from mskit.constants.mass import CompoundMass, Mass
 from mskit.rapid_kit import split_prec, split_fragment_name
 
 
-def calc_prec_mz(pep: str, charge: int = 2, mod=None) -> float:
+def calc_prec_mz(pep: str, charge: int = None, mod=None) -> float:
     """
     Example:
     pep = 'LGRPSLSSEVGVIICDISNPASLDEMAK'

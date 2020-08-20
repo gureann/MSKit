@@ -25,6 +25,7 @@ class CompoundMass:
         'NH3': ElementMass.Mono['N'] + ElementMass.Mono['H'] * 3,
         'H3PO4': ElementMass.Mono['H'] * 3 + ElementMass.Mono['P'] + ElementMass.Mono['O'] * 4,
         'HPO3': ElementMass.Mono['H'] + ElementMass.Mono['P'] + ElementMass.Mono['O'] * 3,
+        'C2H2O': ElementMass.Mono['C'] * 2 + ElementMass.Mono['H'] * 2 + ElementMass.Mono['O'],
     }
 
 
@@ -60,6 +61,7 @@ class Mass:
                'Oxidation': ElementMass.Mono['O'],
                'M[Oxidation]': ElementMass.Mono['O'],
                'Phospho': CompoundMass.CompoundMass['HPO3'],
+               'Acetyl': CompoundMass.CompoundMass['C2H2O'],
                'TMT': 229.1629,
                '1': 147.0353992,  # M[16]
                '2': 167.03203,  # S[80]

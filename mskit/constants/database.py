@@ -12,11 +12,14 @@ class ProteomeXchange:
             Url + Project ID (PXD...)
                 e.g. https://www.ebi.ac.uk/pride/ws/archive/file/list/project/PXD004732
             This will get a json file
+        Example FTP file address
+            ftp://ftp.pride.ebi.ac.uk/pride/data/archive/2018/06/PXD009449/MaxQuant_1.5.3.30.zip
         """
         ListQueryUrl = 'https://www.ebi.ac.uk/pride/ws/archive/file/list/project/'
         FTP_Url = 'ftp://ftp.pride.ebi.ac.uk'
+        ASP_Url = 'era-fasp@fasp.pride.ebi.ac.uk:'
         FTP_IP = '193.62.197.74'
-        FTP_StoragePrefix = '/pride/data/archive/'
+        PRIDE_StoragePrefix = '/pride/data/archive/'
 
 
 class DGI:

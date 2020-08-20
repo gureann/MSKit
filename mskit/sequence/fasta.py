@@ -63,6 +63,8 @@ class FastaParser(object):
         self._seq_to_protein = dict()  # Digested peptide to protein. The protein may be str if one else list.
         self._seq_list = []  # Digested peptides of all protein sequence in the fasta file
 
+        self.fasta_file_stream = None
+
         if preprocess:
             self.init_fasta()
 
@@ -101,6 +103,19 @@ class FastaParser(object):
 
     def __setitem__(self, key, value):
         self.raw_title_dict[key] = value
+
+    def __enter__(self):
+        self.fasta_file_stream = open(self.fasta_path, 'r')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.fasta_file_stream.close()
+
+    def __add__(self, other):  # 只保留唯一 title
+        pass
+
+    @staticmethod
+    def merge_fasta(f1, f2, unique_title=False, unique_seq=False):
+        pass
 
     def get_raw_content(self):
         """
