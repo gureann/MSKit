@@ -11,22 +11,37 @@ Spectronaut -> SN
 class LossType(object):
     SN_to_Readable = {
         'noloss': 'Noloss',
-        'H3PO4': '1,H3PO4',
+
         'H2O': '1,H2O',
-        '1(+H2+O)1(+H3+O4+P)': '1,H2O;1,H3PO4',
-        '2(+H3+O4+P)': '2,H3PO4',
         'NH3': '1,NH3',
+
+        'H3PO4': '1,H3PO4',
+        '1(+H2+O)1(+H3+O4+P)': '1,H2O;1,H3PO4',
         '1(+H3+N)1(+H3+O4+P)': '1,NH3;1,H3PO4',
+
+        '2(+H3+O4+P)': '2,H3PO4',
         '1(+H2+O)2(+H3+O4+P)': '1,H2O;2,H3PO4',
-        '1(+H9+N+O8+P2)': '1,NH3;2,H3PO4',
+        '1(+H3+N)2(+H3+O4+P)': '1,NH3;2,H3PO4',
+
         '3(+H3+O4+P)': '3,H3PO4',
         '1(+H2+O)3(+H3+O4+P)': '1,H2O;3,H3PO4',
         '1(+H3+N)3(+H3+O4+P)': '1,NH3;3,H3PO4',
+
         '4(+H3+O4+P)': '4,H3PO4',
         '1(+H2+O)4(+H3+O4+P)': '1,H2O;4,H3PO4',
+        '1(+H3+N)4(+H3+O4+P)': '1,NH3;4,H3PO4',
+
+        '5(+H3+O4+P)': '5,H3PO4',
+        '1(+H2+O)5(+H3+O4+P)': '1,H2O;5,H3PO4',
+        '1(+H3+N)5(+H3+O4+P)': '1,NH3;5,H3PO4',
+
     }
 
     Readable_to_SN = {v: k for k, v in SN_to_Readable.items()}
+    PreOrder = list(SN_to_Readable.keys())
+
+    SN_to_Readable_v13 = SN_to_Readable.copy()
+    SN_to_Readable_v13['1(+H9+N+O8+P2)'] = '1,NH3;2,H3PO4',  # This will occur in SN 13
 
 
 class BasicModInfo(object):
@@ -61,6 +76,7 @@ class ModType(BasicModInfo):
     The default version is set to 12, which uses the new modification display method.
     The version should be set in each main functions but not the functions that are used frequently.
     """
+
     def __init__(self, spectronaut_version=12):
         self._spectronaut_version = spectronaut_version
         self.ModDict = self.ModDict_new

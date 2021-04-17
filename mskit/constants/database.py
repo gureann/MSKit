@@ -21,6 +21,10 @@ class ProteomeXchange:
         FTP_IP = '193.62.197.74'
         PRIDE_StoragePrefix = '/pride/data/archive/'
 
+    class Massive:
+        FTP_Url = 'ftp://massive.ucsd.edu/'
+        FTP_IP = '132.249.211.16'
+
 
 class DGI:
     """
@@ -38,3 +42,7 @@ class STRING:
     STRING_API_URL = "https://string-db.org/api"
     Methods = ['interaction_partners']
     OutputFormat = []
+
+
+class Uniprot:
+    MainUrl = 'https://www.uniprot.org/'

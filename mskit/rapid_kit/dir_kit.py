@@ -5,8 +5,8 @@ def list_dir_with_identification(
         dirname,
         identification=None,
         position='end',
-        full_path=False):
-
+        full_path=False
+):
     dir_content_list = os.listdir(dirname)
     if identification:
         if position == 'end':

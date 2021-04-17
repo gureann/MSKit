@@ -1,6 +1,9 @@
 import re
 from itertools import combinations
 
+import pandas as pd
+from tqdm import tqdm
+
 from mskit import rapid_kit
 
 
@@ -67,7 +70,7 @@ def add_target_charge(modpep, charge=(2, 3)):
     :param charge: a tuple or an integer of targeted charge state
     """
     if isinstance(charge, int):
-        charge = (charge, )
+        charge = (charge,)
     prec_list = []
     for c in charge:
         _prec = rapid_kit.assemble_prec(modpep, c)

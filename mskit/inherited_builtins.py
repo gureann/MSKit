@@ -1,4 +1,8 @@
-import inspect, re
+import inspect
+import logging
+import os
+import re
+import sys
 
 
 class NonOverwriteDict(dict):
@@ -21,3 +25,49 @@ def varname(var):
     if m:
         return m.group(1)
 
+
+def stdout_file_logger(
+        name='root',
+        log_path=None,
+        log_level=logging.DEBUG,
+        log_format='[%(asctime)s] - [%(name)s] - [%(levelname)s]\n%(message)s',
+        reset_handlers=True
+):
+    logger = logging.getLogger(name)
+
+    if len(logger.handlers) > 0:
+        if reset_handlers:
+            for h in logger.handlers:
+                logger.removeHandler(h)
+        else:
+            return logger
+
+    logger.setLevel(log_level)
+
+    formatter = logging.Formatter(log_format)
+
+    stdout_handler = logging.StreamHandler(stream=sys.stdout)
+    stdout_handler.setLevel(log_level)
+    stdout_handler.setFormatter(formatter)
+    logger.addHandler(stdout_handler)
+
+    if log_path is not None:
+        file_handler = logging.FileHandler(log_path)
+        file_handler.setLevel(log_level)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+
+    return logger
+
+
+def load_py_file(file_path):
+    file_dir = os.path.dirname(file_path)
+    file_name = os.path.basename(file_path)
+    file_name_no_suffix = os.path.splitext(os.path.basename(file_name))[0]
+    sys.path.insert(-1, file_dir)
+    content = {}
+    try:
+        exec(f'import py file {file_name}', {}, content)
+    except ModuleNotFoundError:
+        raise FileNotFoundError(f'Not find the input file {file_name} with basename {file_name_no_suffix} in {file_dir}')
+    return content['content']

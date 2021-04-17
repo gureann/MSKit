@@ -1,10 +1,10 @@
-from mskit import rapid_kit
-
 import os
+
+import numpy as np
+import pandas as pd
 from tqdm import tqdm
 
-import pandas as pd
-import numpy as np
+from mskit import rapid_kit
 
 
 def processing_progress_logger(progress_type=None, print_progress=True, save_log=False):
@@ -15,6 +15,7 @@ class SpectronautResults(object):
     """
     This will store multi results as a dict
     """
+
     def __init__(self, result_path_dict=None, read_within_init=False, ident_func=lambda x: os.path.basename(x)):  # 这里可以是list然后传一个ident func来拿到result name或dict直接给定result name
         self.result_path_dict = result_path_dict
         self.filename2key_func = ident_func
@@ -31,8 +32,22 @@ class SpectronautResults(object):
         self.stats_number_matrix = None
         self.stats_number_df = None
 
+        self.exp_names = None
+        self.run_names = None
+
     def __len__(self):
         return len(self.results)
+
+    def __add__(self, other: dict):
+        pass
+
+    def add(self, other):
+        self.__add__(other)
+
+    def empty_cache(self):
+        """
+        Remove all additional information and stored data except the raw input data and parameters
+        """
 
     def read_results(self, result_path_dict=None, print_progress=False):
         if result_path_dict:
@@ -40,7 +55,7 @@ class SpectronautResults(object):
         self.total_result_file_num = len(self.result_path_dict)
         for i, (name, f) in enumerate(self.result_path_dict.items()):
             if print_progress:
-                print(f'Loading result file {i+1}/{self.total_result_file_num}')
+                print(f'Loading result file {i + 1}/{self.total_result_file_num}')
             self.results[name] = SpectronautResult(f)
 
     def remove_all_results(self):
@@ -174,6 +189,7 @@ class SpectronautResult(object):
                 return np.nan
             else:
                 return ';'.join([x['FirstProtein'] + ',' + _ for _ in x['ProtPhosPos'].split(';')])
+
         self.result_df['ProtPhosPosComb'] = self.result_df.apply(_add_comb_site, axis=1)
 
     def add_predefined_features(self, feature_list=None, **kwargs):
@@ -210,8 +226,7 @@ class SpectronautResult(object):
     def get_frag_inten(self) -> dict:
         result_spec = dict()
         reps = self.result_df['R.Replicate'].drop_duplicates().tolist()  # 这里应该增加可以选择 Replicate 或是 FileName
-        try:
-            t = tqdm(reps)
+        with tqdm(reps) as t:
             for rep in t:
                 one_rep_result = self.result_df[self.result_df['R.Replicate'] == rep]
                 one_rep_spec_dict = dict()
@@ -221,16 +236,13 @@ class SpectronautResult(object):
                         frag_dict[f'{row["F.FrgIon"]}+{row["F.Charge"]}-{row["F.FrgLossType"]}'] = row['F.NormalizedPeakArea']
                     one_rep_spec_dict[prec] = frag_dict
                 result_spec[rep] = one_rep_spec_dict
-        except Exception:
-            t.close()
-            raise
         return result_spec
 
     def recalc_exp_irt(self):
         self.result_df['ReCalciRT'] = self.result_df.apply(
             lambda x: (x['EG.MeanApexRT'] - x['EG.StartRT']) / (
                     x['EG.EndRT'] - x['EG.StartRT']) * (
-                    x['EG.EndiRT'] - x['EG.StartiRT']) + x['EG.StartiRT'], axis=1)
+                              x['EG.EndiRT'] - x['EG.StartiRT']) + x['EG.StartiRT'], axis=1)
 
     def return_result_df(self, original_cols=False):
         return self.result_df
@@ -243,6 +255,7 @@ class SpectronautResultPivotPeptide(SpectronautResult):
     2. 对search result加入protein list分类
     3. 提取相同的rep（给定ident分为对应的result）
     """
+
     def __init__(self):
         super(SpectronautResultPivotPeptide, self).__init__()
 

@@ -1,9 +1,34 @@
-from ._deeprt_constant import MOD
-
 import os
+import re
+
 import pandas as pd
 
 from mskit import rapid_kit
+from ._deeprt_constant import MOD
+
+
+def newrt_format_to_deeprt(rt_df: pd.DataFrame, pep_col='IntPep'):
+    rt_df = rt_df[rt_df[pep_col].apply(lambda x: True if x[0] != '*' else False)]
+    rt_df['IntPep'] = rt_df['IntPep'].apply(lambda x: x[1:] if x[0] == '@' else x)
+    return rt_df
+
+
+def parse_deeprt_log(log_path):
+    with open(log_path, 'r') as f:
+        log_content = f.readlines()
+
+    param_num = log_content[0].split(':')[1]
+    epoch_num = (len(log_content) - 2) // 3
+    log_info = []
+    for epoch_idx in range(1, epoch_num + 1):
+        rows = log_content[(epoch_idx - 1) * 3 + 1: epoch_idx * 3 + 1]
+        train_loss = re.findall(r'Training Loss: (\d+?\.\d+) ', rows[0])[0]
+        test_loss = re.findall(r'Testing Loss: (\d+?\.\d+) ', rows[1])[0]
+        data_num, pearson, spearman = re.findall(r'Corr on (\d+) testing samples: (\d+?\.\d+) \| (\d+?\.\d+)', rows[2])[0]
+        log_info.append((epoch_idx, train_loss, test_loss, pearson, spearman, data_num))
+    log_df = pd.DataFrame(log_info, columns=['Epoch', 'TrainLoss', 'TestLoss', 'TestPearson', 'TestSpearman', 'DataNum'])
+    log_df = log_df.astype({'Epoch': int, 'DataNum': int, 'TrainLoss': float, 'TestLoss': float, 'TestPearson': float, 'TestSpearman': float})
+    return log_df, param_num
 
 
 def deeprt_input(out_path, pep_list, mod_trans=True):

@@ -1,4 +1,5 @@
 import re
+
 from mskit.inherited_builtins import NonOverwriteDict
 
 
@@ -85,4 +86,3 @@ def read_synthetic_data(synthetic_file):
             else:
                 print('Error in line {}'.format(line_series + 1))
     return synthetic_data
-

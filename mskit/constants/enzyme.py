@@ -21,12 +21,29 @@ from .aa import AA
 
 
 class Enzyme:
+    """
+    The RE_AllEnd indicates the all possible end pos of the cleavaged peptides, in which the pos of pep end will also be concluded
+    """
     Enzymes = {
         'Trypsin': {
             'CleavageSite': [('K', 1, 'P'), ('R', 1, 'P')],
+            'RE': '[KR](?!P)',
+            'RE_AllEnd': '.*?[KR](?!P)|.+',
+        },
+        'Trypsin/P': {
+            'CleavageSite': [('K', 1, None), ('R', 1, None)],
+            'RE': '[KR]',
+            'RE_AllEnd': '.*?[KR]|.+',
         },
         'LysC': {
             'CleavageSite': [('K', 1, 'P')],
+            'RE': 'K(?!P)',
+            'RE_AllEnd': '.*?K(?!P)|.+',
+        },
+        'LysC/P': {
+            'CleavageSite': [('K', 1, 'P')],
+            'RE': 'K',
+            'RE_AllEnd': '.*?K|.+',
         },
         'LysN': {
             'CleavageSite': [('K', -1, None)],
@@ -41,6 +58,8 @@ class Enzyme:
             'CleavageSite': [('F', 1, None), ('W', 1, None), ('Y', 1, None)],
         },
     }
+
+    AllEnzymes = set(Enzymes.keys()) | set([e.lower() for e in Enzymes.keys()])
 
     def digestion_site(self, enzyme):
         e = self.Enzymes[enzyme]

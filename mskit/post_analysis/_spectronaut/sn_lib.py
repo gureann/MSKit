@@ -1,25 +1,38 @@
-from .sn_constant import *
-from .basic_operations import *
-
-import re
 import os
+import re
+from collections import Counter
+
 import pandas as pd
+import prettytable
+
+from .sn_constant import *
+from .sn_utils import *
+
 try:
     from sklearn.model_selection import train_test_split
 except ModuleNotFoundError:
     pass
 
 from mskit import rapid_kit
+from mskit.calc import normalize_intensity
+
+
+class SpectronautLibrarys(object):
+    def __init__(self, lib_dict, init_oper=None):
+        pass
 
 
 class SpectronautLibrary(object):
     """
     self._library_storage is used for the original library dataframe storage so that self._lib_df can be restored when it is filtered.
+
+    限定每列的 type 为 str，读取之后再转换指定列的格式
     """
 
     LibBasicCols = [
-        'PrecursorCharge', 'IntModifiedPeptide',
-        'ModifiedPeptide', 'StrippedPeptide', 'iRT',
+        'PrecursorCharge',
+        'ModifiedPeptide', 'StrippedPeptide',
+        'iRT',
         'LabeledPeptide', 'PrecursorMz',
         'FragmentLossType', 'FragmentNumber', 'FragmentType', 'FragmentCharge', 'FragmentMz',
         'RelativeIntensity',
@@ -34,7 +47,7 @@ class SpectronautLibrary(object):
     ]
     LibBasicCols_WithoutFrag = rapid_kit.subtract_list(LibBasicCols, FragInfoCols)
 
-    def __init__(self, lib=None, spectronaut_version=12):
+    def __init__(self, lib=None, spectronaut_version=14, pd_low_mem=False):
         self._spectronaut_version = spectronaut_version
         self._Mod = ModType(self._spectronaut_version)
 
@@ -43,27 +56,53 @@ class SpectronautLibrary(object):
         self._library_storage = None
         self._initial_lib_title = None
 
+        self._lib_name = None
+
         self._prec = None
         self._modpep = None
         self._stripped_pep = None
 
         if lib is not None:
-            self.set_library(lib)
+            self.set_library(lib, pd_low_mem=pd_low_mem)
             if isinstance(lib, str):
                 self._lib_path = lib
 
-    def set_library(self, lib):
+    def init(self):
+        pass
+
+    def partial_init(self):
+        pass
+
+    def full_init(self):
+        pass
+
+    def require(self, required_list):
+        require_dict = {
+            'Prec': [self.add_prec()],
+            'IntPep': [self.add_intpep()],
+            'IntPrec': [self.add_prec(), self.add_intprec()]
+        }
+        return [require_dict[k] for k in required_list]
+
+    def set_library(self, lib, pd_low_mem=False):
         if isinstance(lib, pd.DataFrame):
             self._lib_df = lib
         else:
             if os.path.isfile(lib):
                 self._lib_path = lib
-                self._lib_df = pd.read_csv(self._lib_path, sep='\t', low_memory=False)
+                self._lib_df = pd.read_csv(self._lib_path, sep='\t', low_memory=pd_low_mem)
             else:
-                raise
+                raise FileNotFoundError(f'The input library is not a dataframe and not a valid path.\n'
+                                        f'Now is {type(lib)}: {lib}')
 
         self._initial_lib_title = self._lib_df.columns
         self._library_storage = self._lib_df.copy()
+
+    def save(self, path, sep='\t', create_folder_if_notexist=False, save_func=None):
+        """
+        self.write_current_library
+        """
+        self._lib_df.to_csv(path, sep=sep, index=False)
 
     def __len__(self):
         return len(self._lib_df)
@@ -89,6 +128,59 @@ class SpectronautLibrary(object):
     def __setitem__(self, key, value):
         self._lib_df[key] = value
 
+    def columns(self):
+        pass
+
+    def fragment_loss_counts(self, col='FragmentLossType', readable_trans=True):
+        loss_count = dict(Counter(self._lib_df[col]))
+        if readable_trans:
+            temp = dict()
+            for loss_name, num in loss_count.items():
+                if loss_name in LossType.SN_to_Readable:
+                    temp[LossType.SN_to_Readable[loss_name]] = num
+                else:
+                    temp[loss_name] = num
+            loss_count = temp.copy()
+            del temp
+        return loss_count
+
+    def fragment_number_counts(self):
+        pass
+
+    def fragment_charge_counts(self):
+        pass
+
+    def summary(self, sum_list=None):
+        summary_funcs = {
+            'FragmentLossType': self.fragment_loss_counts,
+        }
+        summary_tabel_title = {
+            'FragmentLossType': ['LossType', 'Number'],
+        }
+        long_sep = '-' * 20
+        short_sep = '-' * 5
+        if sum_list is None:
+            sum_list = ['FragmentLossType', ]
+
+        summary_contents = ''
+
+        for each_feature in sum_list:
+            sum_string = ''
+
+            used_func = summary_funcs[each_feature]
+            results = used_func()
+            write_table = prettytable.PrettyTable(field_names=summary_tabel_title[each_feature])
+            for each_result_name, result_num in results.items():
+                write_table.add_row([each_result_name, result_num])
+
+            sum_string += f'{long_sep}\n'
+            sum_string += f'{short_sep} {each_feature} {short_sep}\n'
+            sum_string += f'{write_table.get_string()}\n'
+            sum_string += f'{long_sep}\n'
+            print(sum_string)
+            summary_contents += '\n'
+            summary_contents += sum_string
+
     def backtrack_library(self):
         """
         replace lib_df with storage
@@ -105,35 +197,23 @@ class SpectronautLibrary(object):
 
     def add_prec(self):
         if 'Precursor' not in self._lib_df:
-            self._lib_df['Precursor'] = get_lib_prec(self._lib_df)
+            self._lib_df['Precursor'] = self._lib_df['ModifiedPeptide'] + '.' + self._lib_df['PrecursorCharge'].astype(str)
 
     def add_intpep(self):
-        str_mod_to_int_dict = {
-            'C[Carbamidomethyl (C)]': 'C',
-            'M[Oxidation (M)]': '1',
-            'S[Phospho (STY)]': '2',
-            'T[Phospho (STY)]': '3',
-            'Y[Phospho (STY)]': '4',
-        }
-
-        def trans_str_mod_to_int(pep):
-            pep = pep.replace('_', '')
-            for mod, int_mod in str_mod_to_int_dict.items():
-                pep = pep.replace(mod, int_mod)
-            return pep
-
-        self._lib_df['IntPep'] = self._lib_df['ModifiedPeptide'].apply(trans_str_mod_to_int)
+        # TODO This should be trans pep format (need a general function)
+        self._lib_df['IntPep'] = self._lib_df['ModifiedPeptide'].apply(sn_modpep_to_intseq)
 
     def add_intprec(self):
         self._lib_df['IntPrec'] = self._lib_df['IntPep'] + '.' + self._lib_df['PrecursorCharge'].astype(str)
 
-    def add_first_protein(self, x, target_col='ProteinGroups', add_col='FirstProtein'):
+    def add_first_protein(self, target_col='ProteinGroups', add_col='FirstProtein'):
         def split_protein(x, col):
             acc = x[col]
             if pd.isna(acc):
                 return np.nan
             acc = acc.split(';')[0].strip()
             return acc
+
         self._lib_df[add_col] = self._lib_df.apply(split_protein, col=target_col, axis=1)
 
     def add_protein_type(self, type_dict, target_col='ProteinGroups', add_col='ProteinType', add_method=lambda x: x.split(';')[0], split_sign=';'):
@@ -144,6 +224,34 @@ class SpectronautLibrary(object):
         """
         pass
 
+    def assign_protein(self, seq_dict, add_col='AssignedProteins'):
+        pass
+
+    def assign_protein_with_ref(self, ref_dict, seq_dict=None,
+                                key_level='StrippedPeptide', add_col='AssignedProteins'):
+        if seq_dict is not None:
+            pass
+
+    def trans_frag_losstype(self, trans_dict):
+        self._lib_df['FragmentLossType_Raw'] = self._lib_df['FragmentLossType']
+        self._lib_df['FragmentLossType'] = self._lib_df['FragmentLossType_Raw'].replace(trans_dict)
+
+    def add_frag_name(self, trans_dict=None, used_losstype_col='FragmentLossType'):
+        if trans_dict is not None:
+            self.trans_frag_losstype(trans_dict)
+        self._lib_df['FragName'] = self._lib_df["FragmentType"] + \
+                                   self._lib_df["FragmentNumber"].astype(str) + '+' + \
+                                   self._lib_df["FragmentCharge"].astype(str) + '-' + \
+                                   self._lib_df[used_losstype_col]
+
+    def add_inten_rank(self, base_col='Precursor', inten_col='RelativeIntensity', **rank_args):
+        if 'method' not in rank_args:
+            rank_args['method'] = 'min'
+        self._lib_df['IntenRank'] = self._lib_df.groupby(base_col)[inten_col].rank(**rank_args).astype(int)
+
+    def retain_basic_cols(self):
+        self._lib_df = self._lib_df[self.LibBasicCols]
+
     def add_predefined_features(self, feature_list=None):
         """
         :param feature_list TODO 最后应该把所有feature单独添加，这里传一个list来选择添加哪些feature
@@ -152,21 +260,97 @@ class SpectronautLibrary(object):
         self.add_intpep()
         self.add_intprec()
 
-    def get_all_mods(self):
-        a = []
-        for __ in [re.findall(r'\[.+?\]', _) for _ in list(set(self._lib_df['ModifiedPeptide']))]:
-            for b in __:
-                if b not in a:
-                    a.append(b)
-        return a
+    def remove_mod(self, mods, regex=False):
+        mods = [mods] if isinstance(mods, str) else mods
+        for mod in mods:
+            self._lib_df = self._lib_df[~self._lib_df['ModifiedPeptide'].str.contains(mod, regex=regex)]
 
-    def get_frag_inten(self) -> dict:
+    def get_all_mods(self, sort=True, modpep_col='ModifiedPeptide'):
+        mods = []
+        for one_pep_mod in [re.findall(r'\[.+?\]', _) for _ in list(set(self._lib_df[modpep_col]))]:
+            for mod in one_pep_mod:
+                if mod not in mods:
+                    mods.append(mod)
+        if sort:
+            mods = sorted(mods)
+        return mods
+
+    def count_mods(self, level='single'):
+        """
+        "single" to count each mod in all peps, "all" to count mod combination
+        """
+        pass
+
+    def get_all_aa(self, sort=True, used_col='StrippedPeptide'):
+        aas = []
+        for one_pep_aa in [list(_) for _ in list(set(self._lib_df[used_col]))]:
+            for aa in one_pep_aa:
+                if aa not in aas:
+                    aas.append(aa)
+        if sort:
+            aas = sorted(aas)
+        return aas
+
+    def get_frag_inten(self, prec_col='Precursor') -> dict:
         lib_spec = dict()
-        for prec, df in self._lib_df.groupby('Precursor'):
+        if 'FragName' not in self._lib_df.columns:
+            self.add_frag_name()
+        for prec, df in self._lib_df.groupby(prec_col):
+            lib_spec[prec] = dict(df[['FragName', 'RelativeIntensity']].values)
+        return lib_spec
+
+    def get_rt_df(self, pep_col='ModifiedPeptide', rt_col='iRT') -> pd.DataFrame:
+        rt_df = self._lib_df[[pep_col, rt_col]].drop_duplicates(pep_col)
+        return rt_df
+
+    def get_frag_inten_phos(self, prec_col='Precursor', output_key_col=None,
+                            limit_charge=(1, 2),
+                            limit_loss=('noloss', 'H3PO4'),
+                            index_loss='H3PO4', min_frag_num=None) -> dict:
+        """
+        这个现在只用来作为 pDeep2 的 test 时提取 library 中的 Intensity
+        如果是用于 training 提取 library 中的 fragment Intensity 使用 get_frag_inten
+        之后应该把这个里面对 Phos loss 最小 by 离子位置的功能放在外面
+        """
+        lib_spec = dict()
+        if 'FragName' not in self._lib_df.columns:
+            self.add_frag_name()
+        if output_key_col is None:
+            output_key_col = prec_col
+        if min_frag_num is None:
+            min_frag_num = 0
+        for prec, df in self._lib_df.groupby(prec_col):
+            modpep, charge = prec.split('.')
+            output_key = df.iloc[0][output_key_col]
+            strip_pep, mod_sites, mods = rapid_kit.substring_finder(modpep.replace('_', ''))
+            phos_mod_site = [mod_sites[i] for i, mod in enumerate(mods) if mod == '[Phospho (STY)]']
+            st_phosmod_site = [s for s in phos_mod_site if strip_pep[s - 1] in ('S', 'T')]
+            if st_phosmod_site:
+                positive_min_phos_site = min(st_phosmod_site)
+                negetive_min_phos_site = len(strip_pep) - max(st_phosmod_site) + 1
+            else:
+                positive_min_phos_site = len(strip_pep) + 1
+                negetive_min_phos_site = len(strip_pep) + 1
             frag_dict = dict()
             for row_index, row in df.iterrows():
-                frag_dict[f'{row["FragmentType"]}{row["FragmentNumber"]}+{row["FragmentCharge"]}-{row["FragmentLossType"]}'] = row['RelativeIntensity']
-            lib_spec[prec] = frag_dict
+                frag_type = row["FragmentType"]
+                frag_num = row["FragmentNumber"]
+                frag_charge = row["FragmentCharge"]
+                frag_losstype = row["FragmentLossType"]
+                if frag_charge not in limit_charge:
+                    continue
+                if frag_losstype not in limit_loss:
+                    continue
+                if frag_losstype == index_loss:
+                    if frag_type == 'b' and frag_num < positive_min_phos_site:
+                        continue
+                    elif frag_type == 'y' and frag_num < negetive_min_phos_site:
+                        continue
+                    else:
+                        pass
+                frag_dict[row['FragName']] = row['RelativeIntensity']
+            if len(frag_dict) >= min_frag_num:
+                lib_spec[output_key] = normalize_intensity(frag_dict, max_num=100)
         return lib_spec
 
     def remove_library_add_col(self):
@@ -176,7 +360,9 @@ class SpectronautLibrary(object):
     def return_library(self, remove_add_col=False):
         if remove_add_col:
             self.remove_library_add_col()
-        return self._lib_df
+        return self._lib_df.copy()
+
+    to_df = return_library
 
     def write_current_library(self, output_path, remove_add_col=True):
         """
@@ -195,7 +381,7 @@ class SpectronautLibrary(object):
                         self._lib_df[self._lib_df[split_by].isin(test_list)])
             else:
                 pass
-        if len(split_size) == 3:
+        elif len(split_size) == 3:
             size_outof_train = split_size[1] + split_size[2]
             train_list, val_test_list = train_test_split(by_list, train_size=split_size[0], test_size=size_outof_train, random_state=seed)
             val_size, test_size = split_size[1] / size_outof_train, split_size[2] / size_outof_train
@@ -203,6 +389,8 @@ class SpectronautLibrary(object):
             return (self._lib_df[self._lib_df[split_by].isin(train_list)],
                     self._lib_df[self._lib_df[split_by].isin(val_list)],
                     self._lib_df[self._lib_df[split_by].isin(test_list)])
+        else:
+            pass
 
     def library_basic_info(self):
         """
@@ -280,6 +468,19 @@ class SpectronautLibrary(object):
     def library_length_charge_distrib(self) -> pd.Series:
         pass
 
+    def filter_length(self, min_len=None, max_len=None, col='StrippedPeptide'):
+        self._lib_df = self._lib_df[self._lib_df[col].str.len().apply(lambda x: min_len <= x <= max_len)]
+
+    def filter_prec_charge(self, charge=(1, 2, 3, 4, 5), prec_charge_col='PrecursorCharge'):
+        if isinstance(charge, int):
+            charge = (charge,)
+        self._lib_df = self._lib_df[self._lib_df[prec_charge_col].astype(int).isin(charge)]
+
+    def filter_peak_losstype(self, min_noloss_peak: int = 6, loss_type='Noloss',
+                             prec_col='Precursor', loss_col='FragmentLossType'):
+        self._lib_df = self._lib_df.loc[self._lib_df.groupby(prec_col)[loss_col].filter(
+            lambda x: x.value_counts().get(loss_type, 0) >= min_noloss_peak).index]
+
     def filter_library(self, min_len=None, max_len=None, min_noloss_peaks: int = 6, charge=(1, 2, 3, 4, 5)):
         """
         For psm filter, to get get_one_prefix_result library with better quantity for training.
@@ -301,7 +502,7 @@ class SpectronautLibrary(object):
         :param charge:
         """
         if isinstance(charge, int):
-            charge = (charge, )
+            charge = (charge,)
 
         if isinstance(max_len, float):
             len_distrib = self.strippep_length_distrib()
@@ -389,7 +590,7 @@ class SpectronautLibrary(object):
         """
         target_list = rapid_kit.process_list_or_file(target_protein_list)
         target_set = set(target_list)
-        self._lib_df = self._lib_df[self._lib_df.apply(rapid_kit.protein_groups_match, col='ProteinGroups', args=(target_set, ), axis=1)]
+        self._lib_df = self._lib_df[self._lib_df.apply(rapid_kit.protein_groups_match, col='ProteinGroups', args=(target_set,), axis=1)]
 
     def library_remove_target(self, target_protein_list):
         """
@@ -400,7 +601,7 @@ class SpectronautLibrary(object):
         """
         target_list = rapid_kit.process_list_or_file(target_protein_list)
         target_set = set(target_list)
-        self._lib_df = self._lib_df[~self._lib_df.apply(rapid_kit.protein_groups_match, col='ProteinGroups', args=(target_set, ), axis=1)]
+        self._lib_df = self._lib_df[~self._lib_df.apply(rapid_kit.protein_groups_match, col='ProteinGroups', args=(target_set,), axis=1)]
 
     def library_remove_target_re(self, target_protein_list):
         """

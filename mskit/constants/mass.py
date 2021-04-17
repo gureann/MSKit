@@ -1,3 +1,7 @@
+"""
+
+"""
+
 
 class ElementMass:
     Mono = {
@@ -70,7 +74,10 @@ class Mass:
                }
 
     ModLossMass = {
-        'H3PO4': CompoundMass.CompoundMass['H3PO4']
+        'Noloss': 0.,
+        'H2O': CompoundMass.CompoundMass['H2O'],
+        'NH3': CompoundMass.CompoundMass['NH3'],
+        'H3PO4': CompoundMass.CompoundMass['H3PO4'],
     }
 
 # C[Carbamidomethyl] = 103.00918 + 57.0214637

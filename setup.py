@@ -24,11 +24,16 @@ REQUIRES_PYTHON = '>=3.7.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    'numpy', 'pandas', 'scipy', 'scikit-learn', 'requests', 'matplotlib',
+    'numpy', 'pandas', 'scipy',
+    'matplotlib',
+    'scikit-learn',
+    'requests',
+    'prettytable', 'tqdm',
 ]
 
 # What packages are optional?
 EXTRAS = {
+    'numba'
     # 'fancy feature': ['django'],
 }
 

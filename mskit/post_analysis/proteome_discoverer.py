@@ -1,5 +1,5 @@
 import os
-import pandas as pd
+
 """
 文件夹中包含导出的谱图，每个文件按precursor命名
 """

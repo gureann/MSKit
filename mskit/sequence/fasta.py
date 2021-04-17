@@ -1,10 +1,10 @@
-from .ted import TED
-
 import os
 import re
+
 import numpy as np
 
 from mskit import rapid_kit
+from .ted import TED
 
 
 class FastaWriter(object):
@@ -34,9 +34,8 @@ def ktx_to_dict(input_file, keystarter='<'):
 
 class FastaParser(object):
     """
-    TODO 传入path，或content，或handle，增加skiprow和commend ident
-    TODO 两个 fasta parser 合并
     """
+
     def __init__(self, fasta_path, parse_rule='uniprot', preprocess=True, nothing_when_init=False):
         """
         :param fasta_path:
@@ -121,7 +120,7 @@ class FastaParser(object):
         """
         Get the whole content of the input fasta file
         """
-        if not self.raw_content:
+        if self.raw_content is None:
             with open(self.fasta_path, 'r') as fasta_handle:
                 self.raw_content = fasta_handle.read()
         return self.raw_content
@@ -130,7 +129,7 @@ class FastaParser(object):
         pass
 
     def init_fasta(self, method='re'):
-        if not self.raw_content:
+        if self.raw_content is None:
             self.get_raw_content()
         if method == 're':
             title_seq_list = re.findall('(>.+?\\n)([^>]+\\n?)', self.raw_content)
@@ -246,3 +245,26 @@ class _FastaParser(FastaParser, ):
             super(FastaParser, self).__init__()
         elif fasta_type.lower() == 'base' or fasta_type.lower() == 'nucleic acid':
             pass
+
+
+def seq_dict_from_fasta(fasta_file, sep='|', ident_idx=1, open_type='r', skip_row=None):
+    fasta_dict = dict()
+    seq_list = []
+    with open(fasta_file, open_type, ) as f:
+        if isinstance(skip_row, int):
+            [f.readline() for _ in range(skip_row)]
+        for row in f:
+            if open_type == 'rb':
+                row = row.decode()
+            if row.startswith('>'):
+                if seq_list:
+                    fasta_dict[acc] = ''.join(seq_list)
+                acc = row.strip('\n').split(sep)[ident_idx]
+                seq_list = []
+            elif not row or row == '\n':
+                raise
+            else:
+                seq_list.append(row.strip('\n'))
+        if seq_list:
+            fasta_dict[acc] = ''.join(seq_list)
+    return fasta_dict

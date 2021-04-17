@@ -1,6 +1,9 @@
 import re
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+
+from .text_kit import substring_finder
 
 
 def select_row_with_target_col(df, ident, colname, return_col_list=None):
@@ -81,6 +84,40 @@ def filter_prob(
         x,
         find_col,
         prob_col,
+        mod_name='(Phospho (STY))',
+        recept_prob=0.75,
+        refute_prob=0.75):
+    find_col_content = x[find_col]
+    if mod_name not in find_col_content:
+        return True
+
+    prob_col_content = x[prob_col]
+    if pd.isna(prob_col_content):
+        return True
+
+    if f'(' not in prob_col_content:
+        return True
+
+    strippep, modpos, mods = substring_finder(find_col_content.replace('_', ''), '(', ')')
+    strippep, prob_pos, probs = substring_finder(prob_col_content.replace('_', ''), '(', ')')
+
+    for pos in prob_pos:
+        prob_idx = prob_pos.index(pos)
+
+        prob = float(probs[prob_idx].strip('()'))
+        if pos in modpos:
+            if prob <= recept_prob:
+                return False
+        else:
+            if prob > refute_prob:
+                return False
+    return True
+
+
+def __filter_prob(
+        x,
+        find_col,
+        prob_col,
         ident='ph',
         recept_prob=0.75,
         refute_prob=0.75):
@@ -101,7 +138,6 @@ def filter_prob(
     # be NaN
 
     if pd.isna(prob_col_content):
-        print('sth.')
         return True
 
     if f'(' not in prob_col_content:
@@ -120,6 +156,10 @@ def filter_prob(
     find_seq_sum = [''.join(split_find_col[:i + 1])
                     for i in range(len(split_find_col))]
     prob_seq_sum = ''
+    # 这里因为 prob col 中的位点概率会给出所有可能分配位点的概率值
+    # 但是 sequence 里没有过 cutoff 的则没有给出修饰信息，即 (ph)
+    # 因此通过 prob col 得到的 sequence 可能不在分割出的 mod sequence 列中
+    # 这里设置 refute prob 是指没有给出修饰位点但是这个位点的 prob 超过了一定的值
     for i in range(0, len(split_prob_col) - 1, 2):
         prob_seq_sum += split_prob_col[i]
         if prob_seq_sum in find_seq_sum:

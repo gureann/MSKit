@@ -1,11 +1,84 @@
+import os
+import re
+
+import numpy as np
+import pandas as pd
+
+from mskit import calc
+from mskit import rapid_kit
 from .sn_constant import SNLibraryTitle
 
-import os
-import pandas as pd
-import numpy as np
 
-from mskit import rapid_kit
-from mskit import calc
+def filter_inten_neutral_loss_pos(modpep, intens,
+                                  exclude_mod_in_pep='[Phospho (STY)]',
+                                  exclude_res=('S', 'T'),
+                                  exclude_frag_losstype='H3PO4'):
+    """
+    TODO 这里只是对最小和最大可以出现磷酸根丢失的位点进行 filter，如果需要进一步对应磷酸化修饰数量，应该指定 b/y 之后建一个每个位置的数量 list
+    TODO 如果目的不止是为了筛选正确的丢失位点，则最好直接产生一条肽段所有可能的 fragments
+
+    *Suspend*
+
+    :param modpep: This should be a phosphopeptide with general format like _XXXXXS[Phospho (STY)]XXXX_
+    :param intens: a intensity dict
+    """
+    strip_pep, mod_pos, mods = rapid_kit.substring_finder(modpep.replace('_', ''))
+    phos_mod_pos = [mod_pos[i] for i, mod in enumerate(mods) if mod == exclude_mod_in_pep]
+    st_phosmod_pos = [s for s in phos_mod_pos if strip_pep[s - 1] in exclude_res]
+    if st_phosmod_pos:
+        positive_min_phos_site = min(st_phosmod_pos)
+        negetive_min_phos_site = len(strip_pep) - max(st_phosmod_pos) + 1
+    else:
+        positive_min_phos_site = len(strip_pep) + 1
+        negetive_min_phos_site = len(strip_pep) + 1
+    new_frag_dict = dict()
+    for frag_name, inten in intens.items():
+        frag_type, frag_num, frag_charge, frag_losstype = re.findall(r'([by])(\d+)\+(\d)-(.+)', frag_name)[0]
+        if ',' in frag_losstype:
+            frag_losstype = frag_losstype.split(',')[1]
+        if frag_losstype == exclude_frag_losstype:
+            if frag_type == 'b' and frag_num < positive_min_phos_site:
+                continue
+            elif frag_type == 'y' and frag_num < negetive_min_phos_site:
+                continue
+            else:
+                raise
+        new_frag_dict[frag_name] = inten
+
+
+def filter_inten_dict_with_phosloss(inten):
+    pass
+
+
+def sn_modpep_to_intseq(x):
+    x = x.replace('_', '')
+    if '[Acetyl (Protein N-term)]' in x:
+        x = x.replace('[Acetyl (Protein N-term)]', '')
+        x = '*' + x
+    else:
+        x = '@' + x
+    x = x.replace('C[Carbamidomethyl (C)]', 'C')
+    x = x.replace('M[Oxidation (M)]', '1')
+    x = x.replace('S[Phospho (STY)]', '2')
+    x = x.replace('T[Phospho (STY)]', '3')
+    x = x.replace('Y[Phospho (STY)]', '4')
+    return x
+
+
+def intseq_to_sn_modpep(x):
+    if x[0] == '*':
+        x = '[Acetyl (Protein N-term)]' + x[1:]
+    elif x[0] == '@':
+        x = x[1:]
+    else:
+        pass
+    x = x.replace('C', 'C[Carbamidomethyl (C)]')
+    x = x.replace('1', 'M[Oxidation (M)]')
+    x = x.replace('2', 'S[Phospho (STY)]')
+    x = x.replace('3', 'T[Phospho (STY)]')
+    x = x.replace('4', 'Y[Phospho (STY)]')
+    x = f'_{x}_'
+    return x
 
 
 def get_lib_prec(lib_df):
@@ -26,7 +99,7 @@ def get_library_info(lib_path):
     return protein_groups_num, precursor_num, modpep_num
 
 
-def merge_lib(main_lib, accomp_lib, drop_col=('ProteinGroups', )):
+def merge_lib(main_lib, accomp_lib, drop_col=('ProteinGroups',)):
     """
     :param main_lib: main library
     :param accomp_lib: accompanying library. Overlapped precursors with main lib in this lib will be deleted

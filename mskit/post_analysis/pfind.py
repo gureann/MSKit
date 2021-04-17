@@ -1,8 +1,7 @@
 from collections import defaultdict
+
 import matplotlib.pyplot as plt
-
 import pandas as pd
-
 
 pFind = 3
 
@@ -18,6 +17,7 @@ class ProteinFile(object):
     ...
     REV_CON
     """
+
     def __init__(self, file_path):
         self.file_path = file_path
 
@@ -94,10 +94,10 @@ class SpecFile(object):
 
     @staticmethod
     def pfind_spec_prot_to_file(x):  # 把这个函数放在外面
-            proteins = x['Proteins'].strip('/').split('/')
-            file = x['File_Name'].split('.')[0]
-            prot_len = len(proteins)
-            return dict(zip(proteins, [file] * prot_len))
+        proteins = x['Proteins'].strip('/').split('/')
+        file = x['File_Name'].split('.')[0]
+        prot_len = len(proteins)
+        return dict(zip(proteins, [file] * prot_len))
 
     def get_prot_to_file_dict(self):
         prot_to_file_list = SpecDF.apply(self.pfind_spec_prot_to_file, axis=1).tolist()
@@ -108,6 +108,6 @@ class SpecFile(object):
                     continue
                 for r_index, region_ident in enumerate(RegionIdent):
                     if region_ident in file:
-                        prot_to_file[name.split('|')[1]].add(f'R{r_index+1}')
+                        prot_to_file[name.split('|')[1]].add(f'R{r_index + 1}')
         print('Total prot -> file dict (contains REV_):', len(prot_to_file.keys()))
         return prot_to_file

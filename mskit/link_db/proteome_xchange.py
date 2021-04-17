@@ -1,6 +1,7 @@
-import requests
-import pandas as pd
 from ftplib import FTP
+
+import pandas as pd
+import requests
 
 from mskit.constants import ProteomeXchange as PXConst
 
@@ -79,6 +80,7 @@ class PrideFTPDownloader(object):
 
     def ftp_cwd(self):
         pass
+
     '250 Directory successfully changed.'
 
     def download(self, ):

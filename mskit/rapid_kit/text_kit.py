@@ -1,26 +1,77 @@
-from .data_struc_kit import str_mod_to_list
-
 import re
 
+from .data_struc_kit import str_mod_to_list
 
-def get_title_dict(title_content: str) -> dict:
+
+def get_title2idx_dict(title_content: str) -> dict:
     title_dict = dict([(__, _) for _, __ in enumerate(
         title_content.strip('\n').split('\t'))])
     return title_dict
 
 
-def semicolon_combination(*sn, keep_order=False):
+def combine_delimited_text(*sn: str, delimiter=';', keep_order: bool = False) -> str:
     """
     This will combine two strings with semicolons and drop duplication
     Example: s1='Q1;Q2', s2='Q2;Q3' -> 'Q1;Q2;Q3'
     Note that the order may change if keep_order=False
     """
-    s_list = map(lambda _: _.strip(';').split(';'), sn)
+    s_list = map(lambda _: _.strip(delimiter).split(delimiter), sn)
     flatten_s = list(filter(lambda x: True if x else False, sum(s_list, [])))
     unique_s = list(set(flatten_s))
     if keep_order:
         unique_s = sorted(unique_s, key=flatten_s.index)
     return ';'.join(unique_s)
+
+
+def substring_finder(string, start_char='[', end_char=']', substring_trans_dict=None):
+    """
+    This will find the substrings start with param "start" and end with param "end" in input "string"
+    This will return
+        a string with no substrings
+        a list of positions of substrings (the 1-indexed)
+        a list of substrings
+    Example:
+        substring_finder('AM(ox)M(Oxidation (M))C(Carbamidomethyl (C))DEEHC(Carb)K', '(', ')')
+            ('AMMCDEEHCK',
+            [2, 3, 4, 9],
+            ['(ox)', '(Oxidation (M))', '(Carbamidomethyl (C))', '(Carb)'])
+        substring_finder('AM[ox]M[Oxidation (M)]C[Carbamidomethyl (C)]DEEHC[Carb]K', '[', ']')
+            ('AMMCDEEHCK',
+            [2, 3, 4, 9],
+            ['[ox]', '[Oxidation (M)]', '[Carbamidomethyl (C)]', '[Carb]'])
+    TODO 再返回一个对应位点氨基酸的 list  注意 N 和 C 端
+    TODO substring_trans_dict
+    """
+    start_num = 0
+    end_num = 0
+    substrings = []
+    pos = []
+    substring_start = False
+    sub_total_len = 0
+    main_str = ''
+    sub_str = ''
+    for i, char in enumerate(string):
+        if char == start_char:
+            sub_str += char
+            substring_start = True
+            start_num += 1
+        elif char == end_char:
+            sub_str += char
+            end_num += 1
+            if start_num == end_num:
+                substrings.append(sub_str)
+                sub_total_len += len(sub_str)
+                pos.append(i - sub_total_len + 1)
+                start_num = 0
+                end_num = 0
+                sub_str = ''
+                substring_start = False
+        else:
+            if substring_start:
+                sub_str += char
+            else:
+                main_str += char
+    return main_str, pos, substrings
 
 
 def extract_bracket(str_with_bracket, ):  # Need a parameter to choose to use () or [] or others (by manurally define?) and a parameter to skip how many additional brackets

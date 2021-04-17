@@ -6,11 +6,11 @@ MOD = {'C[Carbamidomethyl (C)]': 'C',
        'Y[Phospho (Y)]': '4',
        }
 MOD_2 = {
-       'C[Carbamidomethyl]': 'C',
-       'M[Oxidation]': '1',
-       'S[Phospho]': '2',
-       'T[Phospho]': '3',
-       'Y[Phospho]': '4',
+    'C[Carbamidomethyl]': 'C',
+    'M[Oxidation]': '1',
+    'S[Phospho]': '2',
+    'T[Phospho]': '3',
+    'Y[Phospho]': '4',
 }
 
 # M[16] -> '1',

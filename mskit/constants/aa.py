@@ -77,7 +77,8 @@ class AA:
     Hydro = ['A', 'F', 'I', 'L', 'M', 'P', 'V', 'W']
 
     # Anal. Chem. 2008, 80, 18, 7036-7042 https://doi.org/10.1021/ac800984n
-    Rc_RPLC = '''residue	TFA FA	pH 10
+    Rc_RPLC = '''\
+residue	TFA FA	pH 10
 W	13.12	13.67	12.27
 F	11.34	11.92	10.19
 L	9.44	9.89	8.74
@@ -97,10 +98,12 @@ G	−0.35	−0.07	0.17
 R	−2.58	−3.55	3.56
 N	−1.44	−0.59	0.04
 H	−3.04	−5.05	0.66
-K	−3.53	−5.08	2.8'''
+K	−3.53	−5.08	2.8\
+'''
 
     # Anal. Chem. 2017, 89, 11795−11802 DOI:10.1021/acs.analchem.7b03436
-    Rc_SCX = '''residue	N-terminal	N+1	N+2	internal	C-2	C-1	C-terminal
+    Rc_SCX = '''\
+residue	N-terminal	N+1	N+2	internal	C-2	C-1	C-terminal
 R	1.271	1.267	1.217	1.085	1.090	1.095	1.069
 H	1.192	1.199	1.162	1.038	1.043	0.980	0.921
 K	1.096	1.103	1.043	0.972	0.969	0.953	0.974
@@ -120,7 +123,8 @@ T	−0.089	−0.069	−0.037	−0.018	−0.024	−0.019	0.033
 L	−0.136	−0.088	−0.058	−0.032	−0.053	−0.040	0.009
 I	−0.121	−0.085	−0.068	−0.040	−0.054	−0.049	0.003
 V	−0.136	−0.090	−0.060	−0.043	−0.055	−0.045	0.034
-P	-0.124	−0.068	−0.062	−0.054	−0.057	−0.056	0.049'''
+P	-0.124	−0.068	−0.062	−0.054	−0.057	−0.056	0.049\
+'''
 
     def get_rc(self, chro_type='RPLC'):
         import io
@@ -135,10 +139,8 @@ P	-0.124	−0.068	−0.062	−0.054	−0.057	−0.056	0.049'''
 
 
 class AAInfo:
-    """
-    The most useful class for my error-like memory
-    """
-    AAName = '''Full name	Chinese	3-letter	1-letter
+    AAName = '''\
+Full name	Chinese	3-letter	1-letter
 Alanine	丙氨酸	Ala	A
 Cysteine	半胱氨酸	Cys	C
 Asparticacid	天冬氨酸	Asp	D
@@ -158,7 +160,8 @@ Serine	丝氨酸	Ser	S
 Threonine	苏氨酸	Thr	T
 Valine	缬氨酸	Val	V
 Tryptophan	色氨酸	Trp	W
-Tyrosine	酪氨酸	Tyr	Y'''
+Tyrosine	酪氨酸	Tyr	Y\
+'''
 
     def get_aa_name(self):
         import io
