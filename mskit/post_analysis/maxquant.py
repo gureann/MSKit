@@ -2,6 +2,13 @@ import re
 
 import pandas as pd
 
+"""
+检索结果的导入
+    1. 每种文件单独
+    2. 所有文件在一个文件夹中，读入指定文件关联 id
+
+"""
+
 
 def mq_modpep_to_intseq_1_6(x):
     x = x.replace('_', '')

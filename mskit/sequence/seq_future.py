@@ -7,6 +7,50 @@ from tqdm import tqdm
 from mskit import rapid_kit
 
 
+def extract_seq_window(seq, fasta_dict: dict, n=7, ex_pad_symbol='_'):
+    """
+    TODO fasta dict 可以传入 fasta parser
+    TODO 可以指定蛋白序列 / 指定蛋白 acc
+    """
+    ext_data = []
+    for acc, prot_seq in fasta_dict.items():
+        if seq in prot_seq:
+            find_pos = [_.span() for _ in re.finditer(seq, prot_seq)]
+            for start_idx, end_pos in find_pos:
+                if start_idx < n:
+                    prev_seq = ex_pad_symbol * (n - start_idx) + prot_seq[: start_idx]
+                else:
+                    prev_seq = prot_seq[start_idx - n: start_idx]
+                back_seq = prot_seq[end_pos: end_pos + n]
+                if len(back_seq) < n:
+                    back_seq = back_seq + ex_pad_symbol * (n - len(back_seq))
+                ext_data.append((seq, prev_seq, back_seq, acc, start_idx + 1))
+    return ext_data
+
+
+def batch_extract_seq_window(seq_list, fasta_dict: dict, n=7, ex_pad_symbol='_', return_type='df'):
+    extract_data = []
+    not_find_data = []
+    with tqdm(seq_list) as t:
+        t.set_description(f'Extract seq window (n={n}): ')
+        for seq in t:
+            result = extract_seq_window(seq, fasta_dict=fasta_dict, n=n, ex_pad_symbol=ex_pad_symbol)
+            if result:
+                extract_data.extend(result)
+            else:
+                not_find_data.append(seq)
+    if return_type == 'raw':
+        return extract_data, not_find_data
+    elif return_type == 'df':
+        raw_df = pd.DataFrame(extract_data, columns=['Pep', 'Prev', 'Back', 'Acc', 'StartPos'])
+        group_df = raw_df.groupby(['Pep', 'Prev', 'Back']).apply(lambda x: ';'.join(list(set(x['Acc'] + '-' + x['StartPos'].astype(str)))))
+        group_df = group_df.reset_index()
+        group_df.columns = ['Pep', 'Prev', 'Back', 'Acc-PepPos']
+        return group_df, not_find_data
+    else:
+        raise ValueError(f'Return type should be one of the "raw" | "df", now {return_type}')
+
+
 def batch_add_target_mod(pep_list, mod_type: dict = None, mod_processor=None):
     """
     TODO : This may result of some redundant results (dont know why)

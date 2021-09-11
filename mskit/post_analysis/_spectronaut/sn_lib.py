@@ -28,6 +28,7 @@ class SpectronautLibrary(object):
 
     限定每列的 type 为 str，读取之后再转换指定列的格式
     """
+    # TODO 提 fragment intensity 这种操作可以加并行，把提取步骤提出来，函数只负责做循环然后加一个装饰器？或是直接写两个方法
 
     LibBasicCols = [
         'PrecursorCharge',
@@ -280,6 +281,9 @@ class SpectronautLibrary(object):
         "single" to count each mod in all peps, "all" to count mod combination
         """
         pass
+
+    def count_frag_num(self, prec_col='IntPrec'):
+        return self._lib_df.groupby(prec_col).apply(len).value_counts().sort_index()
 
     def get_all_aa(self, sort=True, used_col='StrippedPeptide'):
         aas = []

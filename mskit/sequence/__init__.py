@@ -1,4 +1,4 @@
 from ._mod import ModOperation
-from .fasta import FastaParser
-from .seq_future import *
+from .fasta import read_fasta, write_fasta, FastaParser
+from . import seq_future
 from .ted import TED

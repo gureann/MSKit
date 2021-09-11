@@ -8,6 +8,21 @@ Spectronaut -> SN
 """
 
 
+class SNMod(object):
+    SNModToUnimod_13 = {
+        ''
+    }
+
+    def __init__(self, sn_version=14):
+        if sn_version >= 13:
+            self.sn_mod_to_unimod = self.SNModToUnimod_13
+        else:
+            pass
+
+    def sn_modpep_to_unimod_pep(self):
+        pass
+
+
 class LossType(object):
     SN_to_Readable = {
         'noloss': 'Noloss',

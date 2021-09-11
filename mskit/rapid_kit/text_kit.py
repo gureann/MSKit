@@ -9,7 +9,7 @@ def get_title2idx_dict(title_content: str) -> dict:
     return title_dict
 
 
-def combine_delimited_text(*sn: str, delimiter=';', keep_order: bool = False) -> str:
+def combine_delimited_text(*sn: str, delimiter: str = ';', keep_order: bool = False) -> str:
     """
     This will combine two strings with semicolons and drop duplication
     Example: s1='Q1;Q2', s2='Q2;Q3' -> 'Q1;Q2;Q3'
@@ -23,7 +23,7 @@ def combine_delimited_text(*sn: str, delimiter=';', keep_order: bool = False) ->
     return ';'.join(unique_s)
 
 
-def substring_finder(string, start_char='[', end_char=']', substring_trans_dict=None):
+def find_substring(s: str, start_char='[', end_char=']', substring_trans_dict: dict = None):
     """
     This will find the substrings start with param "start" and end with param "end" in input "string"
     This will return
@@ -50,7 +50,7 @@ def substring_finder(string, start_char='[', end_char=']', substring_trans_dict=
     sub_total_len = 0
     main_str = ''
     sub_str = ''
-    for i, char in enumerate(string):
+    for i, char in enumerate(s):
         if char == start_char:
             sub_str += char
             substring_start = True
@@ -72,6 +72,41 @@ def substring_finder(string, start_char='[', end_char=']', substring_trans_dict=
             else:
                 main_str += char
     return main_str, pos, substrings
+
+
+substring_finder = find_substring
+
+
+def fillin_annotation(s, anno_pos, anno_text, existed_anno_start_char: str = None, existed_anno_end_char: str = None):
+    if isinstance(anno_pos, (str, int)):
+        anno_pos = [int(anno_pos)]
+    if isinstance(anno_text, str):
+        anno_text = [anno_text]
+
+    if existed_anno_start_char is not None and existed_anno_end_char is not None:
+        s, exist_anno_pos, exist_anno_text = find_substring(s, start_char=existed_anno_start_char, end_char=existed_anno_end_char)
+    elif existed_anno_start_char is None and existed_anno_end_char is None:
+        exist_anno_pos, exist_anno_text = [], []
+    else:
+        raise ValueError(
+            'Both `existed_anno_start_char` and `existed_anno_end_char` need to be passed or set to None as default. '
+            f'Now {existed_anno_start_char} and {existed_anno_end_char}'
+        )
+
+    exist_anno_pos += anno_pos
+    exist_anno_text += anno_text
+
+    t = sorted([(i, v) for i, v in enumerate(exist_anno_pos)], key=lambda x: x[1])
+    anno_pos = [_[1] for _ in t]
+    anno_text = [anno_text[i] for i in [_[0] for _ in t]]
+    anno_s = ''
+    _ = 0
+    for pos_idx, pos in enumerate(anno_pos):
+        anno_s += s[_: pos]
+        anno_s += anno_text[pos_idx]
+        _ = pos
+    anno_s += s[pos:]
+    return anno_s
 
 
 def extract_bracket(str_with_bracket, ):  # Need a parameter to choose to use () or [] or others (by manurally define?) and a parameter to skip how many additional brackets

@@ -4,6 +4,10 @@ from typing import Union
 from mskit import rapid_kit as rk
 from mskit.constants.enzyme import Enzyme
 
+__all__ = [
+    'TED',
+]
+
 
 class TED(object):
     def __init__(self, miss_cleavage=(0, 1, 2), min_len=7, max_len=33, enzyme='Trypsin', return_type='seq', extend_n=False):

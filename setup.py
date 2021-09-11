@@ -22,7 +22,6 @@ AUTHOR = __info__.__author__
 VERSION = __info__.__version__
 REQUIRES_PYTHON = '>=3.7.0'
 
-# What packages are required for this module to be executed?
 REQUIRED = [
     'numpy', 'pandas', 'scipy',
     'matplotlib',
@@ -31,17 +30,29 @@ REQUIRED = [
     'prettytable', 'tqdm',
 ]
 
-# What packages are optional?
 EXTRAS = {
-    # 'numba'
-    # 'fancy feature': ['django'],
+    'SpeedUp': ['numba'],
+    'Parallel': ['joblib', 'dask', 'distributed'],
+    'torch': ['pytorch'],
+    'tensorflow': ['tensorflow-gpu'],
 }
 
-# The rest you shouldn't have to touch too much :)
-# ------------------------------------------------
-# Except, perhaps the License and Trove Classifiers!
-# If you do change the License, remember to change the Trove Classifier
-# for that!
+classifiers = [
+    # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
+    'License :: OSI Approved :: MIT License',
+
+    'Development Status :: 2 - Pre-Alpha',
+
+    'Programming Language :: Python :: 3 :: Only',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: Implementation :: CPython',
+
+    'Topic :: Scientific/Engineering :: Bio-Informatics',
+    'Topic :: Software Development :: Version Control :: Git'
+]
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -127,17 +138,8 @@ setup(
     install_requires=REQUIRED,
     extras_require=EXTRAS,
     include_package_data=True,
-    license='MIT',
-    classifiers=[
-        # Trove classifiers
-        # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
-        'Topic :: Scientific/Engineering :: Bio-Informatics',
-        'Development Status :: 2 - Pre-Alpha',
-    ],
+    license=__info__.__license__,
+    classifiers=classifiers,
     # $ setup.py publish support.
     cmdclass={
         'upload': UploadCommand,

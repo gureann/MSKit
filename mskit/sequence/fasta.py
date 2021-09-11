@@ -1,10 +1,94 @@
 import os
 import re
+import typing
 
 import numpy as np
 
 from mskit import rapid_kit
 from .ted import TED
+
+__all__ = [
+    'read_fasta',
+    'write_fasta',
+    'FastaParser'
+]
+
+
+def read_fasta(
+        fasta_file,
+        sep='|',
+        ident_idx=1,
+        ident_process_func: typing.Union[None, typing.Callable] = None,
+        open_type='r',
+        skip_row=None,
+        ignore_blank=False
+):
+    """
+    Use `sep=None` to skip parsing title
+
+    """
+    fasta_dict = dict()
+    seq_list = []
+    with open(fasta_file, open_type, ) as f:
+        if isinstance(skip_row, int):
+            [f.readline() for _ in range(skip_row)]
+        for row in f:
+            if open_type == 'rb':
+                row = row.decode()
+            if row.startswith('>'):
+                if seq_list:
+                    fasta_dict[acc] = ''.join(seq_list)
+
+                if ident_process_func is not None:
+                    acc = ident_process_func(acc)
+                else:
+                    if sep is None:
+                        acc = row.strip('\n')
+                    else:
+                        acc = row.strip('\n').split(sep)[ident_idx]
+
+                seq_list = []
+            elif not row or row == '\n':
+                if ignore_blank:
+                    continue
+                else:
+                    raise ValueError('Blank line in target FASTA file. '
+                                     'Check completeness of FASTA file, or use `ignore_blank=True` to ignore this error.')
+            else:
+                seq_list.append(row.strip('\n'))
+        if seq_list:
+            fasta_dict[acc] = ''.join(seq_list)
+    return fasta_dict
+
+
+seq_dict_from_fasta = read_fasta
+
+
+def write_fasta(
+        fasta: dict,
+        file_path: str,
+        line_max_char: int = None
+):
+    """
+    seq_line:
+        None: Write one seq to one line
+        80: Write one seq to multilines to keep the numebr of char in one line == 80
+        other integer: Keep number of char equal to the customed number
+    """
+    with open(file_path, 'w') as f:
+        if line_max_char is not None:
+            for title, seq in fasta.items():
+                f.write(title + '\n')
+                f.write(
+                    ''.join([
+                        seq[_ * line_max_char: (_ + 1) * line_max_char] + '\n'
+                        for _ in range(int(np.ceil(len(seq) / line_max_char)))
+                    ])
+                )
+        else:
+            for title, seq in fasta.items():
+                f.write(title + '\n')
+                f.write(seq + '\n')
 
 
 class FastaWriter(object):
@@ -34,6 +118,8 @@ def ktx_to_dict(input_file, keystarter='<'):
 
 class FastaParser(object):
     """
+    TODO 传入path，或content，或handle，增加skiprow和commend ident
+    TODO 两个 fasta parser 合并
     """
 
     def __init__(self, fasta_path, parse_rule='uniprot', preprocess=True, nothing_when_init=False):
@@ -245,26 +331,3 @@ class _FastaParser(FastaParser, ):
             super(FastaParser, self).__init__()
         elif fasta_type.lower() == 'base' or fasta_type.lower() == 'nucleic acid':
             pass
-
-
-def seq_dict_from_fasta(fasta_file, sep='|', ident_idx=1, open_type='r', skip_row=None):
-    fasta_dict = dict()
-    seq_list = []
-    with open(fasta_file, open_type, ) as f:
-        if isinstance(skip_row, int):
-            [f.readline() for _ in range(skip_row)]
-        for row in f:
-            if open_type == 'rb':
-                row = row.decode()
-            if row.startswith('>'):
-                if seq_list:
-                    fasta_dict[acc] = ''.join(seq_list)
-                acc = row.strip('\n').split(sep)[ident_idx]
-                seq_list = []
-            elif not row or row == '\n':
-                raise
-            else:
-                seq_list.append(row.strip('\n'))
-        if seq_list:
-            fasta_dict[acc] = ''.join(seq_list)
-    return fasta_dict
