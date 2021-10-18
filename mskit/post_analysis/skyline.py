@@ -1,12 +1,9 @@
-import pandas as pd
-import numpy as np
 import os
-import scipy.stats
-import time
-import itertools
-import argparse
-import matplotlib.pyplot as plt
 from sys import argv
+
+import numpy as np
+import pandas as pd
+import scipy.stats
 
 
 def read_need_list(list_content):
@@ -17,23 +14,24 @@ def read_need_list(list_content):
         need_list = list_content.split('\n')
     else:
         need_list = list_content
-    need_list = [_.replace('\n', '') for _ in need_list]
+    need_list = [_.strip('\n') for _ in need_list]
     while '' in need_list:
         need_list.remove('')
     need_list = [_.replace('C', 'C[+57.021464]') for _ in need_list]
     return need_list
 
 
-def process_transition_file(transition_file, need_list=None):
+def process_transition_file(
+    transition_file,
+    need_list: list = None,
+    kept_fragment_name: tuple = ('b1', 'b2', 'y1', 'y2'),
+) -> pd.DataFrame:
     transition_df = pd.read_csv(transition_file, header=-1)
-    if need_list:
+    if need_list is not None:
         transition_df = transition_df[transition_df[3].isin(need_list)]
 
     transition_df = transition_df.drop(transition_df.loc[transition_df[5] == transition_df[5].shift(1)].index)
-
-    fragment_order_12_list = ['b1', 'b2', 'y1', 'y2']
-    transition_df = transition_df[~(transition_df[5].isin(fragment_order_12_list))]
-
+    transition_df = transition_df[~(transition_df[5].isin(kept_fragment_name))]
     return transition_df
 
 
@@ -49,10 +47,10 @@ def transition_list_filter(raw_file, pep_list):
     pass
 
 
-def read_skyline_result(sky_file, sample_identi=None):
+def read_skyline_result(sky_file, partial_run_names=None):
     result_df = pd.read_csv(sky_file)
     stripped_pep_list = result_df['Peptide Sequence'].drop_duplicates().dropna().tolist()
-    samp_list = result_df['Replicate Name'].drop_duplicates().dropna().tolist()
+    sample_list = result_df['Replicate Name'].drop_duplicates().dropna().tolist()
     df_columns = result_df.columns
 
     if 'Area' not in df_columns:
@@ -60,20 +58,24 @@ def read_skyline_result(sky_file, sample_identi=None):
     else:
         use_total_fragment_area = False
 
-    if sample_identi:
-        samp_list = [_ for _ in samp_list if sample_identi[0].lower() in _.lower()] + [_ for _ in samp_list if sample_identi[1].lower() in _.lower()]
-    sample_num = len(samp_list)
+    if partial_run_names:
+        sample_list = (
+                [_ for _ in sample_list if partial_run_names[0].lower() in _.lower()]
+                + [_ for _ in sample_list if partial_run_names[1].lower() in _.lower()]
+        )
+    sample_num = len(sample_list)
     pep_num = len(stripped_pep_list)
-    quant_df = pd.DataFrame(np.zeros((pep_num, sample_num)), index=stripped_pep_list, columns=samp_list)
+    quant_df = pd.DataFrame(np.zeros((pep_num, sample_num)), index=stripped_pep_list, columns=sample_list)
 
     for each_stripep in stripped_pep_list:
         each_pep_df = result_df[result_df['Peptide Sequence'] == each_stripep]
         each_prec_df = each_pep_df[each_pep_df['Fragment Ion'] == 'precursor']
         each_fragment_df = each_pep_df[~(each_pep_df['Fragment Ion'] == 'precursor')]
 
-        for each_rep in samp_list:
+        for each_rep in sample_list:
             if use_total_fragment_area:
-                each_fragment_area_sum = each_prec_df[each_prec_df['Replicate Name'] == each_rep]['Total Area Fragment'].iloc[0]
+                each_fragment_area_sum = \
+                each_prec_df[each_prec_df['Replicate Name'] == each_rep]['Total Area Fragment'].iloc[0]
             else:
                 try:
                     coeluting_true_df = each_fragment_df[each_fragment_df['Coeluting'] == True]
@@ -152,29 +154,39 @@ def stats_within_group(quant_df, sample_identi):
     # Ratio-Mean
     quant_df[f'Ratio-Mean'] = quant_df.loc[:, [_ for _ in quant_df.columns if 'Ratio' in _]].apply(np.mean, axis=1)
     # STD-Ratio
-    quant_df[f'STD-Ratio'] = quant_df.loc[:, [_ for _ in quant_df.columns if 'Ratio' in _]].apply(np.std, ddof=1, axis=1)
+    quant_df[f'STD-Ratio'] = quant_df.loc[:, [_ for _ in quant_df.columns if 'Ratio' in _]].apply(np.std, ddof=1,
+                                                                                                  axis=1)
     # CV-Ratio
     quant_df[f'CV-Ratio'] = quant_df[f'STD-Ratio'] / quant_df[f'Ratio-Mean']
     # p-value
     pvalue_list = []
     for each_pep in quant_df.index:
-        array_t_test = scipy.stats.ttest_ind(quant_df.loc[each_pep, samp_list[0: rep_num]], quant_df.loc[each_pep, samp_list[rep_num: rep_num * 2]], equal_var=True)
-        float_p_value = array_t_test[1]
-        if scipy.stats.levene(quant_df.loc[each_pep, samp_list[0: rep_num]], quant_df.loc[each_pep, samp_list[rep_num: rep_num * 2]])[1] < 0.05:
-            array_t_test = scipy.stats.ttest_ind(quant_df.loc[each_pep, samp_list[0: rep_num]], quant_df.loc[each_pep, samp_list[rep_num: rep_num * 2]], equal_var=False)
-            float_p_value = array_t_test[1]
-        pvalue_list.append(float_p_value)
+        if scipy.stats.levene(
+                quant_df.loc[each_pep, samp_list[0: rep_num]],
+                quant_df.loc[each_pep, samp_list[rep_num: rep_num * 2]]
+        )[1] < 0.05:
+            equal_var = False
+        else:
+            equal_var = True
+        t_result = scipy.stats.ttest_ind(
+            quant_df.loc[each_pep, samp_list[0: rep_num]],
+            quant_df.loc[each_pep, samp_list[rep_num: rep_num * 2]],
+            equal_var=equal_var)
+        pvalue_list.append(t_result[1])
     quant_df[f'P-value'] = pvalue_list
     # MeanRatio
-    mean_multi_ratio, std_multi_ratio = calc_all_ratio(quant_df.loc[:, samp_list[0: rep_num]], quant_df.loc[:, samp_list[rep_num: rep_num * 2]])
+    mean_multi_ratio, std_multi_ratio = calc_all_ratio(quant_df.loc[:, samp_list[0: rep_num]],
+                                                       quant_df.loc[:, samp_list[rep_num: rep_num * 2]])
     quant_df['MeanRatio'] = mean_multi_ratio
     quant_df['STD-MeanRatio'] = std_multi_ratio
     # STD
     quant_df[f'STD-{sample_identi[0]}'] = quant_df.loc[:, samp_list[0: rep_num]].apply(np.std, ddof=1, axis=1)
     quant_df[f'STD-{sample_identi[1]}'] = quant_df.loc[:, samp_list[rep_num: rep_num * 2]].apply(np.std, ddof=1, axis=1)
     # CV
-    quant_df[f'CV-{sample_identi[0]}'] = quant_df[f'STD-{sample_identi[0]}'] / quant_df[f'MeanArea-{sample_identi[0]}'] * 100
-    quant_df[f'CV-{sample_identi[1]}'] = quant_df[f'STD-{sample_identi[1]}'] / quant_df[f'MeanArea-{sample_identi[1]}'] * 100
+    quant_df[f'CV-{sample_identi[0]}'] = quant_df[f'STD-{sample_identi[0]}'] / quant_df[
+        f'MeanArea-{sample_identi[0]}'] * 100
+    quant_df[f'CV-{sample_identi[1]}'] = quant_df[f'STD-{sample_identi[1]}'] / quant_df[
+        f'MeanArea-{sample_identi[1]}'] * 100
 
     return quant_df
 

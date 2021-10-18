@@ -47,6 +47,7 @@ class SpectronautLibrary(object):
         'RelativeIntensity',
     ]
     LibBasicCols_WithoutFrag = rapid_kit.subtract_list(LibBasicCols, FragInfoCols)
+    LibBasicCols_WithPG = [*LibBasicCols, 'ProteinGroups']
 
     def __init__(self, lib=None, spectronaut_version=14, pd_low_mem=False):
         self._spectronaut_version = spectronaut_version

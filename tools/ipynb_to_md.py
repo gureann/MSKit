@@ -185,7 +185,7 @@ if __name__ == '__main__':
         pass
 
     if args['img_folder'] is None:
-        img_folder = os.path.join(os.path.dirname(md_path), 'imgs', md_filename.rstrip('.md'))
+        img_folder = os.path.join(os.path.dirname(md_path), 'imgs', md_filename.replace('.md', ''))
     else:
         img_folder = args['img_folder']
     os.makedirs(img_folder, exist_ok=True)

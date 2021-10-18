@@ -10,16 +10,16 @@ from .ted import TED
 __all__ = [
     'read_fasta',
     'write_fasta',
-    'FastaParser'
+    'FastaFile'
 ]
 
 
 def read_fasta(
         fasta_file,
-        sep='|',
-        ident_idx=1,
+        sep: typing.Union[None, str] = '|',
+        ident_idx: int = 1,
         ident_process_func: typing.Union[None, typing.Callable] = None,
-        open_type='r',
+        open_mode: str = 'r',
         skip_row=None,
         ignore_blank=False
 ):
@@ -29,11 +29,11 @@ def read_fasta(
     """
     fasta_dict = dict()
     seq_list = []
-    with open(fasta_file, open_type, ) as f:
+    with open(fasta_file, open_mode, ) as f:
         if isinstance(skip_row, int):
             [f.readline() for _ in range(skip_row)]
         for row in f:
-            if open_type == 'rb':
+            if open_mode == 'rb':
                 row = row.decode()
             if row.startswith('>'):
                 if seq_list:
@@ -67,22 +67,22 @@ seq_dict_from_fasta = read_fasta
 def write_fasta(
         fasta: dict,
         file_path: str,
-        line_max_char: int = None
+        seq_line_max_char: int = None
 ):
     """
-    seq_line:
+    line_max_char:
         None: Write one seq to one line
         80: Write one seq to multilines to keep the numebr of char in one line == 80
         other integer: Keep number of char equal to the customed number
     """
     with open(file_path, 'w') as f:
-        if line_max_char is not None:
+        if seq_line_max_char is not None:
             for title, seq in fasta.items():
                 f.write(title + '\n')
                 f.write(
                     ''.join([
-                        seq[_ * line_max_char: (_ + 1) * line_max_char] + '\n'
-                        for _ in range(int(np.ceil(len(seq) / line_max_char)))
+                        seq[_ * seq_line_max_char: (_ + 1) * seq_line_max_char] + '\n'
+                        for _ in range(int(np.ceil(len(seq) / seq_line_max_char)))
                     ])
                 )
         else:
@@ -91,72 +91,83 @@ def write_fasta(
                 f.write(seq + '\n')
 
 
-class FastaWriter(object):
-    pass
-
-
-def ktx_to_dict(input_file, keystarter='<'):
-    """ parsing keyed text to a python dictionary. """
-    answer = dict()
-
-    with open(input_file, 'r+', encoding='utf-8') as f:
-        lines = f.readlines()
-
-    k, val = '', ''
-    for line in lines:
-        if line.startswith(keystarter):
-            k = line.replace(keystarter, '').strip()
-            val = ''
-        else:
-            val += line
-
-        if k:
-            answer.update({k: val.strip()})
-
-    return answer
-
-
-class FastaParser(object):
+class FastaFile(object):
     """
     TODO 传入path，或content，或handle，增加skiprow和commend ident
     TODO 两个 fasta parser 合并
     """
 
-    def __init__(self, fasta_path, parse_rule='uniprot', preprocess=True, nothing_when_init=False):
+    def __init__(
+            self,
+            fasta_file_path,
+            open_mode='r',
+            title_parse_rule: typing.Union[str, typing.Callable] = 'uniprot',
+            preprocess=True,
+            nothing_when_init=False
+    ):
         """
-        :param fasta_path:
-        :param parse_rule: 'uniprot' will get the second string for title split by '|', and others will be the first string split by get_one_prefix_result blank,
+        :param fasta_file_path:
+        :param title_parse_rule: 'uniprot' will get the second string for title split by '|', and others will be the first string split by get_one_prefix_result blank,
         while maybe other formats of fasta title is needed later
         """
 
-        if os.path.exists(fasta_path):
-            self.fasta_path = os.path.abspath(fasta_path)
-        else:
-            print('Incorrect fasta file path')
-            raise FileNotFoundError(f'The Fasta is not existed: {fasta_path}')
+        self.fasta_file_path = fasta_file_path
+        self.raw_entry_seq_map = dict()
+        self.title_parse_rule = title_parse_rule
 
-        self.parse_rule = parse_rule
         self.id_parse_func = None
         self.comment_parse_func = None
 
-        self.raw_title_dict = dict()
         self.prot_acc_dict = dict()
 
-        self.raw_content = None  # The whole text of the fasta file
         self._protein_info = dict()  # The description information of each protein in the fasta file
         self._protein_to_seq = dict()  # The whole sequence of each protein (No digestion)
         self._seq_to_protein = dict()  # Digested peptide to protein. The protein may be str if one else list.
         self._seq_list = []  # Digested peptides of all protein sequence in the fasta file
 
-        self.fasta_file_stream = None
-
         if preprocess:
-            self.init_fasta()
+            self.load_fasta()
 
-    def get_parse_rule(self):
-        return self.parse_rule
+    def get_fasta_file_path(self):
+        return self.fasta_file_path
 
-    def set_parse_rule(self, parse_rule=None, id_parse_func=None, comment_parse_func=None):
+    def set_fasta_file_path(self, fasta_file_path):
+        if os.path.exists(fasta_file_path):
+            self.fasta_file_path = os.path.abspath(fasta_file_path)
+        else:
+            print('Incorrect FASTA file path')
+            raise FileNotFoundError(f'The FASTA file is not existed: {fasta_file_path}')
+
+    fasta_file_path = property(get_fasta_file_path, set_fasta_file_path, doc='''''')
+
+    def load_fasta(self, open_mode='r', method='re'):
+        if method == 're':
+            with open(self.fasta_file_path, 'r') as f:
+                raw_content = f.read()
+            title_seq_list = re.findall('(>.+?\\n)([^>]+\\n?)', raw_content)
+            title_seq_list = [(title.strip('\n'), seq.replace('\n', '')) for title, seq in title_seq_list]
+            self.raw_entry_seq_map = dict(title_seq_list)
+        else:
+            self.raw_entry_seq_map = read_fasta(
+                self.fasta_file_path,
+                sep=None,
+                ident_idx=-1,
+                ident_process_func=None,
+                open_mode=open_mode,
+                skip_row=None,
+                ignore_blank=False
+            )
+
+    def get_title_parse_rule(self):
+        return self.title_parse_rule
+
+    def set_title_parse_rule(
+            self,
+            parse_rule=None,
+            id_parse_func=None,
+            comment_parse_func=None
+    ):
+        print('enter set parse func')
         id_parse_rules = {'uniprot': lambda x: re.findall('^>(.+?)\|(.+?)\|(.+?)$', x)}
         comment_parse_rules = {'uniprot': lambda x: None}
         if isinstance(parse_rule, str):
@@ -166,63 +177,32 @@ class FastaParser(object):
                 raise KeyError(f'Not {parse_rule} Found in The Predefined rule list')
         else:
             pass
-        self.parse_rule = parse_rule
+        self.title_parse_rule = parse_rule
 
         if id_parse_func:
             self.id_parse_func = id_parse_func
         if comment_parse_func:
             self.comment_parse_func = comment_parse_func
 
-    parse_rule = property(get_parse_rule, set_parse_rule, doc='''Return type can be seq or site_seq.
-    If seq: A list of seq will be returned. ['ADEFHK', 'PQEDAK' , ...]
-    If site_seq: A list of site and seq will be returned. [(0, 'ADEFHK'), (12, 'PQEDAK'), ...]''')
+    title_parse_rule = property(get_title_parse_rule, set_title_parse_rule, doc='''''')
 
     def __call__(self, *args, **kwargs):
         pass
 
     def __iter__(self):
-        return iter(self.get_total_seqlist())
+        return iter(self.raw_entry_seq_map.items())
 
     def __getitem__(self, item):
         return self.prot_acc_dict[item]
 
     def __setitem__(self, key, value):
-        self.raw_title_dict[key] = value
-
-    def __enter__(self):
-        self.fasta_file_stream = open(self.fasta_path, 'r')
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.fasta_file_stream.close()
+        self.raw_entry_seq_map[key] = value
 
     def __add__(self, other):  # 只保留唯一 title
         pass
 
-    @staticmethod
-    def merge_fasta(f1, f2, unique_title=False, unique_seq=False):
-        pass
-
-    def get_raw_content(self):
-        """
-        Get the whole content of the input fasta file
-        """
-        if self.raw_content is None:
-            with open(self.fasta_path, 'r') as fasta_handle:
-                self.raw_content = fasta_handle.read()
-        return self.raw_content
-
     def get_all_title(self):
         pass
-
-    def init_fasta(self, method='re'):
-        if self.raw_content is None:
-            self.get_raw_content()
-        if method == 're':
-            title_seq_list = re.findall('(>.+?\\n)([^>]+\\n?)', self.raw_content)
-            title_seq_list = [(title.strip('\n'), seq.replace('\n', '')) for title, seq in title_seq_list]
-        else:
-            raise
-        self.raw_title_dict = dict(title_seq_list)
 
     def add_new_seqs(self, new_seq_dict, id_conflict=None):
         """
@@ -232,7 +212,7 @@ class FastaParser(object):
             go_on: Add as PROTEIN-2
             consistent: Add as PROTEIN-2 and rename the original key to PROTEIN-1
         """
-        self.raw_title_dict.update(new_seq_dict)
+        self.raw_entry_seq_map.update(new_seq_dict)
 
     def to_file(self, file_path, seq_line=None):
         """
@@ -243,13 +223,16 @@ class FastaParser(object):
         """
         with open(file_path, 'w') as f:
             if seq_line:
-                for title, seq in self.raw_title_dict.items():
+                for title, seq in self.raw_entry_seq_map.items():
                     f.write(title + '\n')
-                    f.write(''.join([seq[_ * seq_line: (_ + 1) * seq_line] + '\n' for _ in range(int(np.ceil(len(seq) / seq_line)))]))
+                    f.write(''.join([seq[_ * seq_line: (_ + 1) * seq_line] + '\n' for _ in
+                                     range(int(np.ceil(len(seq) / seq_line)))]))
             else:
-                for title, seq in self.raw_title_dict:
+                for title, seq in self.raw_entry_seq_map:
                     f.write(title + '\n')
                     f.write(seq + '\n')
+
+    save = to_file
 
     def one_protein_generator(self):
         """
@@ -275,7 +258,7 @@ class FastaParser(object):
     def protein2seq(self, protein_info=False):
         if not self._protein_to_seq:
             for _title, _seq in self.one_protein_generator():
-                protein_ident = rapid_kit.fasta_title(_title, self.parse_rule)
+                protein_ident = rapid_kit.fasta_title(_title, self.title_parse_rule)
                 self._protein_to_seq[protein_ident] = _seq
                 if protein_info:
                     self._protein_info[protein_ident] = _title
@@ -324,10 +307,45 @@ class FastaParser(object):
         self._seq_list = rapid_kit.drop_list_duplicates(self._seq_list)
         return self._seq_list
 
+    def merge(self):
+        pass
 
-class _FastaParser(FastaParser, ):
+
+def merge_fasta(
+        *fasta: typing.Union[FastaFile, dict],
+        duplicated_title: str = 'keep_first',
+        duplicated_seq: str = 'keep_all',
+):
+    """
+    Merge input FASTAs to one.
+    :param fasta:
+        Receives multi input FASTAs for `FastaFile` object or dict
+        If inputs are all `FastaFile` object, this function will return
+        the first `FastaFile` object (same id) with combined `protein: seq` pairs
+        If any one input is `dict`, this function will return a dict with combined `protein: seq` pairs
+    :param duplicated_title: one of "keep_first", "drop_all", "continous_anno"
+    :param duplicated_seq: one of "keep_all", "drop_all". This will be checked after title checking
+    """
+
+    pass
+
+
+class FastaWriter(object):
+    def __init__(self, path):
+        # TODO Check defined path
+        self.fasta_path = path
+        self.fasta_file_stream = None
+
+    def __enter__(self):
+        self.fasta_file_stream = open(self.fasta_path, 'r')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.fasta_file_stream.close()
+
+
+class _FastaParser(FastaFile, ):
     def __init__(self, fasta_type='protein'):
         if fasta_type.lower() == 'protein':
-            super(FastaParser, self).__init__()
+            super(FastaFile, self).__init__()
         elif fasta_type.lower() == 'base' or fasta_type.lower() == 'nucleic acid':
             pass

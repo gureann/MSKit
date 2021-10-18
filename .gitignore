@@ -1,5 +1,6 @@
-# IDEA
+# IDE
 .idea
+.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -30,10 +31,6 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -54,16 +51,6 @@ docs/_build/
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# SageMath parsed files
-*.sage.py
-
 # Environments
 .env
 .venv
@@ -72,7 +59,3 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
-# Spyder project settings
-.spyderproject
-.spyproject

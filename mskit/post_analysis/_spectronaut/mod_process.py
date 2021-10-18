@@ -1,8 +1,4 @@
-from .sn_constant import *
-
 import re
-
-from mskit import rapid_kit
 
 
 class ModProcess(object):
@@ -69,4 +65,3 @@ class ModProcess(object):
     def mod_str2num(str_mod_pep):
         num_mod_pep = str_mod_pep.replace(MOD.ModDict['C'], 'C').replace(MOD.ModDict['M'], '1')
         return num_mod_pep
-

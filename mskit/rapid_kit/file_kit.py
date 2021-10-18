@@ -1,12 +1,73 @@
+import io
 import os
 import pickle
 import time
-import copy
+import typing
 
 import numpy as np
 import pandas as pd
 
 from .data_struc_kit import sum_list
+
+
+def adjust_file_block_pos(
+        f: io.TextIOWrapper,
+        start_pos: int,
+        end_pos: int,
+        split_symbol: str = '\n',
+        adjust_direct: str = 'forward'
+):
+    """
+    adjust_direct: 'forward' or 'backward'
+
+    """
+    # TODO
+    if start_pos != 0:
+        f.seek(start_pos - 1)
+        if f.read(1) != '\n':
+            line = f.readline()
+            start_pos = f.tell()
+    f.seek(start_pos)
+    while (start_pos <= end_pos):
+        line = f.readline()
+        start_pos = f.tell()
+
+
+def split_file_block(
+        file: typing.Union[str, io.TextIOWrapper],
+        mode='rb',
+        block_num: int = None,
+        block_adjust_symbol=None,
+):
+    if block_num is None:
+        block_num = os.cpu_count()
+    if isinstance(file, io.TextIOWrapper):
+        file = file.name
+
+    with open(file, mode) as f:
+        file_size = f.seek(0, 2)
+        if file_size < block_num:
+            raise ValueError(f'Input file size is smaller than block number: {block_num} blocks for file {file}')
+        block_size = int(file_size / block_num)
+
+        # TODO check \n or other defined symbol in loop and adjust position
+        #  `If block_adjust_symbol is not None: adjust_file_block_pos...`
+        pos_list = []
+        start_pos = 0
+        for i in range(block_num):
+            if i == block_num - 1:
+                end_pos = file_size - 1
+                pos_list.append((start_pos, end_pos))
+                break
+            end_pos = start_pos + block_size - 1
+            if end_pos >= file_size:
+                end_pos = file_size - 1
+            if start_pos >= file_size:
+                break
+            pos_list.append((start_pos, end_pos))
+            start_pos = end_pos + 1
+
+    return pos_list
 
 
 def file_prefix_time(with_dash=False):
@@ -37,7 +98,12 @@ def read_one_col_file(file, skiprows=None):
     return one_col_list
 
 
-def flatten_two_headers_file(file, header_num=2, sep=',', method=None):
+def flatten_two_headers_file(
+        file,
+        header_num=2,
+        sep=',',
+        method=None
+) -> pd.DataFrame:
     """
 
     method: stack headers or cross-insert or lower-first
@@ -117,16 +183,49 @@ def process_list_or_file(x):
     return target_list
 
 
-def print_basename_in_dict(path_dict):
+def print_path_basename_in_dict(path_dict: dict):
     for name, path in path_dict.items():
         print(f'{name}: {os.path.basename(path)}')
 
 
-def check_path(path):
-    print(f'{os.path.exists(path)} - {os.path.basename(path)}')
+def print_path_exist():
+    try:
+        print(check_path)
+    except FileNotFoundError:
+        ...
 
 
-def check_path_in_dict(path_dict: dict, shown_filename_right_idx: int = 1):
+def check_path(
+        path: str,
+        name: str = None,
+        shown_path_right_idx: typing.Union[None, int, list, tuple] = 1,
+        show_all_after_idx: bool = True,
+        raise_error: bool = False,
+        verbose: bool = False
+):
+    if shown_path_right_idx is None:
+        shown_filepath = path
+    elif isinstance(shown_path_right_idx, int):
+        if shown_path_right_idx < 0:
+            shown_filepath = path
+        elif shown_path_right_idx == 0:
+            shown_filepath = os.path.basename(path)
+        else:
+            split_path = path.split(os.path.sep)
+            shown_filepath = os.path.sep.join(split_path[-shown_path_right_idx:]) if show_all_after_idx else split_path[-shown_path_right_idx]
+    elif isinstance(shown_path_right_idx, (list, tuple)):
+        # TODO join selected idx
+        for idx in shown_path_right_idx:
+            pass
+    else:
+        raise ValueError(f'Param `shown_path_right_idx` must be None or integer or list/tuple of integet. Now {shown_path_right_idx}')
+    if name is not None:
+        print(f'{os.path.exists(path)} - {name}: {shown_filepath}')
+    else:
+        print(f'{os.path.exists(path)} - {shown_filepath}')
+
+
+def check_path_in_dict(path_dict: dict, shown_filename_right_idx: int = None):
     # TODO 显示的文件名称可以是多个 idx 对应 substring 的组合
     """
     :param path_dict:
@@ -134,7 +233,7 @@ def check_path_in_dict(path_dict: dict, shown_filename_right_idx: int = 1):
     """
     print(f'Total {len(path_dict)} files')
     for name, path in path_dict.items():
-        if shown_filename_right_idx is None:
+        if shown_filename_right_idx is None or (isinstance(shown_filename_right_idx, int) and shown_filename_right_idx == 0):
             shown_filename = path
         elif isinstance(shown_filename_right_idx, int) and shown_filename_right_idx > 0:
             used_path = path

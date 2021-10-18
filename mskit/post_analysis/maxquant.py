@@ -104,6 +104,11 @@ def show_ion_pair(result_df, iloc, return_df=True):
     else:
         for _ in ion_pairs:
             print(_)
-    # pd.DataFrame(zip(jeff_mq_site_filter_df.loc[0]['Masses'].split(';'),
-    # jeff_mq_site_filter_df.loc[0]['Matches'].split(';'),
-    # jeff_mq_site_filter_df.loc[0]['Intensities'].split(';')))
+
+
+def remove_reverse_hits(evi_msms: pd.DataFrame):
+    return evi_msms.loc[evi_msms['Reverse'] != '+']
+
+
+def remove_zero_inten_hits(evi_msms: pd.DataFrame):
+    return evi_msms.loc[evi_msms['Intensity'] > 0]

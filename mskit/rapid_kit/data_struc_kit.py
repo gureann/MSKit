@@ -2,6 +2,32 @@ import numpy as np
 import pandas as pd
 
 
+def sum_list(nested_list):
+    temp = []
+    for _ in nested_list:
+        temp.extend(_)
+        return temp
+
+
+flatten_list = sum_list
+
+
+def recursive_sum_list(nested_list: list) -> list:
+    """
+    Recursively flatten list consist of both list/tuple and un-iterable items
+    TODO append method will take much time?
+        # inner_item_is_list = [isinstance(_, _) for _ in l]
+        # if any(inner_item_is_list):
+    """
+    temp = []
+    for item in nested_list:
+        if isinstance(item, (list, tuple)):
+            temp.extend(recursive_sum_list(item))
+        else:
+            temp.append(item)
+    return temp
+
+
 def sum_set_in_list(list_with_sets, return_type='set'):
     union_set = list_with_sets[0]
     if len(list_with_sets) >= 2:
@@ -12,14 +38,7 @@ def sum_set_in_list(list_with_sets, return_type='set'):
     elif return_type == 'list':
         return list(union_set)
     else:
-        print('Not supported return type when sum set list')
-
-
-def sum_list(nested_list):
-    temp = []
-    for _ in nested_list:
-        temp.extend(_)
-    return temp
+        raise ValueError('Not supported return type when sum set list')
 
 
 def align_dict(*dn: dict, columns=None):
@@ -61,7 +80,7 @@ def subtract_list(list_1, list_2, drop_duplicates=True):
         return subtracted_list
 
 
-def get_coincide_data(dict_1, dict_2):
+def get_dict_coincide_data(dict_1, dict_2):
     shared_keys = list(set(dict_1.keys()) & set(dict_2.keys()))
     value_list_1 = [dict_1[_] for _ in shared_keys]
     value_list_2 = [dict_2[_] for _ in shared_keys]
@@ -74,8 +93,9 @@ def str_mod_to_list(mod):
     return mod_list
 
 
-def check_value_len_of_dict(checked_dict: dict, thousands_separator=True, sort_keys=True):
+def check_value_len_of_dict(checked_dict: dict, thousands_separator=True, sort_keys=False, ):
     # TODO sort_keys 可以为 lambda 函数
+    # TODO return length dict or print
     if sort_keys:
         keys = sorted(checked_dict.keys())
     else:

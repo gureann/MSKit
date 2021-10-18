@@ -1,12 +1,12 @@
 
 _MAJOR_VERSION = 0
-_MINOR_VERSION = 3
-_RELEASE_VERSION = 9
+_MINOR_VERSION = 4
+_MICRO_VERSION = 0
 # _RELEASE_DATE = '.'
 # _RELEASE_TYPE = 'alpha'
 __version__ = '.'.join(
     map(str,
-        [_MAJOR_VERSION, _MINOR_VERSION, _RELEASE_VERSION])
+        [_MAJOR_VERSION, _MINOR_VERSION, _MICRO_VERSION])
 )
 
 __package_name__ = 'mskit'

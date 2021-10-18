@@ -13,18 +13,18 @@ from setuptools import find_packages, setup, Command
 
 from mskit import __info__
 
-# Package meta-data.
 NAME = __info__.__package_name__
 DESCRIPTION = __info__.__short_description__
 URL = __info__.__repository__
 EMAIL = __info__.__email__
 AUTHOR = __info__.__author__
 VERSION = __info__.__version__
+LICENSE = __info__.__license__
 REQUIRES_PYTHON = '>=3.7.0'
 
 REQUIRED = [
     'numpy', 'pandas', 'scipy',
-    'matplotlib',
+    'matplotlib', 'seaborn',
     'scikit-learn',
     'requests',
     'prettytable', 'tqdm',
@@ -33,8 +33,13 @@ REQUIRED = [
 EXTRAS = {
     'SpeedUp': ['numba'],
     'Parallel': ['joblib', 'dask', 'distributed'],
+    'Image': ['opencv-python'],
     'torch': ['pytorch'],
     'tensorflow': ['tensorflow-gpu'],
+}
+
+PACKAGEDATA = {
+    'unimod': ['package_data/unimod.xml'],
 }
 
 classifiers = [
@@ -51,6 +56,8 @@ classifiers = [
     'Programming Language :: Python :: Implementation :: CPython',
 
     'Topic :: Scientific/Engineering :: Bio-Informatics',
+    'Topic :: Scientific/Engineering :: Visualization',
+
     'Topic :: Software Development :: Version Control :: Git'
 ]
 
@@ -112,7 +119,6 @@ class UploadCommand(Command):
         sys.exit()
 
 
-# Where the magic happens:
 setup(
     name=NAME,
     version=about['__version__'],
@@ -129,8 +135,6 @@ setup(
             "*.tests",
             "*.tests.*",
             "tests.*"]),
-    # If your package is a single module, use this instead of 'packages':
-    # py_modules=['mypackage'],
 
     # entry_points={
     #     'console_scripts': ['mycli=mymodule:cli'],
@@ -138,9 +142,9 @@ setup(
     install_requires=REQUIRED,
     extras_require=EXTRAS,
     include_package_data=True,
-    license=__info__.__license__,
+    package_data=PACKAGEDATA,
+    license=LICENSE,
     classifiers=classifiers,
-    # $ setup.py publish support.
     cmdclass={
         'upload': UploadCommand,
     },

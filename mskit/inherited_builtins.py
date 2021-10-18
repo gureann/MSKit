@@ -4,13 +4,14 @@ import logging
 import os
 import re
 import sys
-
+import shutil
 
 __all__ = [
     'NonOverwriteDict',
     'varname',
     'console_file_logger',
     'load_py_file',
+    'recursive_copy',
 ]
 
 
@@ -109,6 +110,7 @@ def load_py_file(file_path, remove_insert_path='new'):
         'new' (default) to remove inserted path from sys path list if this path was not in list before
         False to do nothing
     """
+    # TODO remove inserted path?
     file_dir = os.path.dirname(file_path)
     file_name = os.path.basename(file_path)
     file_name_no_suffix = os.path.splitext(os.path.basename(file_name))[0]
@@ -119,3 +121,25 @@ def load_py_file(file_path, remove_insert_path='new'):
     except ModuleNotFoundError:
         raise FileNotFoundError(f'Not find input file {file_name} with basename {file_name_no_suffix} in {file_dir}')
     return content['content']
+
+
+def recursive_copy(original, target, ignored_items=None, verbose=True, exist_ok=True):
+    if ignored_items is None:
+        ignored_items = []
+
+    os.makedirs(target, exist_ok=exist_ok)
+    curr_items = os.listdir(original)
+    for item in curr_items:
+        if item in ignored_items:
+            continue
+        original_item_path = os.path.join(original, item)
+        target_item_path = os.path.join(target, item)
+        if os.path.isdir(original_item_path):
+            recursive_copy(original_item_path, target_item_path, ignored_items=ignored_items, verbose=verbose)
+        elif os.path.isfile(original_item_path):
+            if verbose:
+                print(f'copying {item} from {original_item_path} to {target_item_path}')
+            shutil.copy(original_item_path, target_item_path)
+        else:
+            raise
+    return 0

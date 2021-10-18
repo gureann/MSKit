@@ -3,13 +3,46 @@ import re
 from .data_struc_kit import str_mod_to_list
 
 
+def split_str_with_symbol_included_substring(
+        s: str,
+        split_symbol: str = '\t',
+        special_symbol: str = '"',
+        keep_spcial_symbol: bool = False,
+        strip_slash_n: bool = False
+):
+    if strip_slash_n:
+        s = s.strip('\n')
+    split_str = []
+    symbol_start = False
+    substr = ''
+    for c in s:
+        if c == special_symbol:
+            symbol_start = [True, False][symbol_start]
+            if keep_spcial_symbol:
+                substr += c
+        elif c == split_symbol:
+            if symbol_start:
+                substr += c
+            else:
+                split_str.append(substr)
+                substr = ''
+        else:
+            substr += c
+    split_str.append(substr)
+    return split_str
+
+
 def get_title2idx_dict(title_content: str) -> dict:
     title_dict = dict([(__, _) for _, __ in enumerate(
         title_content.strip('\n').split('\t'))])
     return title_dict
 
 
-def combine_delimited_text(*sn: str, delimiter: str = ';', keep_order: bool = False) -> str:
+def combine_delimited_text(
+        *sn: str,
+        delimiter: str = ';',
+        keep_order: bool = False
+) -> str:
     """
     This will combine two strings with semicolons and drop duplication
     Example: s1='Q1;Q2', s2='Q2;Q3' -> 'Q1;Q2;Q3'
@@ -23,7 +56,13 @@ def combine_delimited_text(*sn: str, delimiter: str = ';', keep_order: bool = Fa
     return ';'.join(unique_s)
 
 
-def find_substring(s: str, start_char='[', end_char=']', substring_trans_dict: dict = None):
+def find_substring(
+        s: str,
+        start_char: str = '[',
+        end_char: str = ']',
+        keep_start_end_char: bool = True,
+        substring_trans_dict: dict = None
+):
     """
     This will find the substrings start with param "start" and end with param "end" in input "string"
     This will return
@@ -77,7 +116,13 @@ def find_substring(s: str, start_char='[', end_char=']', substring_trans_dict: d
 substring_finder = find_substring
 
 
-def fillin_annotation(s, anno_pos, anno_text, existed_anno_start_char: str = None, existed_anno_end_char: str = None):
+def fillin_annotation(
+        s,
+        anno_pos,
+        anno_text,
+        existed_anno_start_char: str = None,
+        existed_anno_end_char: str = None
+) -> str:
     if isinstance(anno_pos, (str, int)):
         anno_pos = [int(anno_pos)]
     if isinstance(anno_text, str):

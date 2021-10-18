@@ -56,7 +56,7 @@ def split_cross_link_info(x, prot_name_mapper):
     if str(sorted_prot_site[0][1]) != re_match.group(2):
         pep = '-'.join(pep.split('-')[::-1])
 
-    return (pep, *rk.sum_list(prot_site), sorted_link_info)
+    return pep, *rk.sum_list(prot_site), sorted_link_info
 
 
 def process_cross_link_result(df, prot_name_mapper):
@@ -89,7 +89,7 @@ def split_loop_link_info(x, prot_name_mapper):
         *sorted([int(re_match.group(2)), int(re_match.group(3))])
     )
 
-    return (pep, *prot_site, sorted_link_info)
+    return pep, *prot_site, sorted_link_info
 
 
 def process_loop_link_result(df, prot_name_mapper):
