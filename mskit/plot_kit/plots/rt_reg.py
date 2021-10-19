@@ -2,7 +2,7 @@ from matplotlib import pyplot as plt
 from mskit.stats import delta_tx, r_square
 from scipy.stats import pearsonr
 
-from mskit.plot_kit.colors.precolors_single import S
+from mskit.plot_kit.colors.preferred_colors import S
 
 # TODO Reg class
 """

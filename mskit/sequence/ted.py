@@ -10,7 +10,16 @@ __all__ = [
 
 
 class TED(object):
-    def __init__(self, miss_cleavage=(0, 1, 2), min_len=7, max_len=33, enzyme='Trypsin', return_type='seq', extend_n=False):
+    def __init__(
+            self,
+            miss_cleavage=(0, 1, 2),
+            min_len=7,
+            max_len=33,
+            enzyme='Trypsin/P',
+            toggle_nterm_m=True,
+            return_type='seq',
+            extend_n=False
+    ):
         """
         TODO exclude some unusual aa if param assigned
         Theoretical Enzyme Digestion -> TED
@@ -18,6 +27,7 @@ class TED(object):
         :param min_len:
         :param max_len:
         :param enzyme: Enzyme name or a regular expression to define the digestion rules. Currently supported enzymes are trypsin and lysC
+        :param toggle_nterm_m: If 'M' on sequence N-terminal, remove this M and go continue (2), both remove and keep this M and go continue (1 or True), nothing to do (0 or False)
         :param return_type: 'seq' or 'site_seq'
         :param extend_n: False or None or int. Nothing to do with the default False, and the n AAs before and after the seq will be returned if int assigned
         """
@@ -27,6 +37,7 @@ class TED(object):
         self._min_len = min_len
         self._max_len = max_len
         self._enzyme_names, self._enzyme_rules = self._parse_enzyme(enzyme)
+        self._toggle_nterm_m = toggle_nterm_m
         self._return_type = self._parse_return_type(return_type)
         self._extend_n = self._parse_extend_n(extend_n)
 
@@ -139,8 +150,12 @@ class TED(object):
         """
         seq = seq.replace('\n', '').replace(' ', '')
         seq_len = len(seq)
+        if self._toggle_nterm_m == 2 and (seq[0] == 'M'):
+            seq = seq[1:]
 
         cleavage_pos = rk.sum_list([[_.end() for _ in re.finditer(rule, seq)] for rule in self._enzyme_rules]) + [0, seq_len]
+        if (self._toggle_nterm_m is True or self._toggle_nterm_m == 1) and (seq[0] == 'M'):
+            cleavage_pos += [1]
         cleavage_pos = sorted(set(cleavage_pos))
 
         cleavage_pos_num = len(cleavage_pos)

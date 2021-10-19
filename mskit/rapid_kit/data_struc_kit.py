@@ -6,7 +6,7 @@ def sum_list(nested_list):
     temp = []
     for _ in nested_list:
         temp.extend(_)
-        return temp
+    return temp
 
 
 flatten_list = sum_list

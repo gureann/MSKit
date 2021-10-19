@@ -2,27 +2,27 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-from . import rgb_hsl
+from . import gradients
 
 
 class PreColor:
-    red_gradient = np.array(rgb_hsl.gradient_hsl((255, 218, 185), (35, 0, 0), 200)) / 256
-    green_gradient = np.array(rgb_hsl.gradient_hsl((240, 255, 240), (0, 35, 0), 200)) / 256
-    blue_gradient = np.array(rgb_hsl.gradient_hsl((240, 255, 255), (0, 0, 35), 200)) / 256
+    red_gradient = np.array(gradients.gradient_hsl((255, 218, 185), (35, 0, 0), 200)) / 256
+    green_gradient = np.array(gradients.gradient_hsl((240, 255, 240), (0, 35, 0), 200)) / 256
+    blue_gradient = np.array(gradients.gradient_hsl((240, 255, 255), (0, 0, 35), 200)) / 256
 
-    yellow_gradient = np.array(rgb_hsl.gradient_hsl((255, 250, 205), (255, 255, 0), 200)) / 256
-    violet_gradient = np.array(rgb_hsl.gradient_hsl((230, 230, 250), (255, 0, 255), 200)) / 256
-    cyan_gradient = np.array(rgb_hsl.gradient_hsl((230, 230, 250), (0, 255, 255), 200)) / 256
+    yellow_gradient = np.array(gradients.gradient_hsl((255, 250, 205), (255, 255, 0), 200)) / 256
+    violet_gradient = np.array(gradients.gradient_hsl((230, 230, 250), (255, 0, 255), 200)) / 256
+    cyan_gradient = np.array(gradients.gradient_hsl((230, 230, 250), (0, 255, 255), 200)) / 256
     purple_gradient = sns.light_palette(np.array((50, 0, 60)) / 256, input="rgb", n_colors=200)
 
-    rose_gradient = np.array(rgb_hsl.gradient_hsl((250, 230, 230), (255, 1, 1), 200)) / 256
-    grass_gradient = np.array(rgb_hsl.gradient_hsl((230, 250, 230), (0, 255, 0), 200)) / 256
-    blue_violet_gradient = np.array(rgb_hsl.gradient_hsl((230, 230, 250), (0, 0, 255), 200)) / 256
+    rose_gradient = np.array(gradients.gradient_hsl((250, 230, 230), (255, 1, 1), 200)) / 256
+    grass_gradient = np.array(gradients.gradient_hsl((230, 250, 230), (0, 255, 0), 200)) / 256
+    blue_violet_gradient = np.array(gradients.gradient_hsl((230, 230, 250), (0, 0, 255), 200)) / 256
 
     pink_gradient = None
     brown_gradient = None
 
-    grey_gradient = np.array(rgb_hsl.gradient_rgb((255, 255, 255), (0, 0, 0), 200)) / 256
+    grey_gradient = np.array(gradients.gradient_rgb((255, 255, 255), (0, 0, 0), 200)) / 256
 
 
 PreColorDict = {
@@ -41,10 +41,10 @@ PreColorDict = {
 
 
 class FavorGradColor:
-    GreyBlueRed = rgb_hsl.gradient_hsl(
-        (230, 235, 240), (30, 40, 60), 150, value_scale=256)[::-1] + rgb_hsl.gradient_hsl(
-        (245, 250, 255), (230, 235, 240), 35, value_scale=256)[::-1] + rgb_hsl.gradient_hsl(
-        (255, 250, 245), (240, 230, 220), 35, value_scale=256) + rgb_hsl.gradient_hsl(
+    GreyBlueRed = gradients.gradient_hsl(
+        (230, 235, 240), (30, 40, 60), 150, value_scale=256)[::-1] + gradients.gradient_hsl(
+        (245, 250, 255), (230, 235, 240), 35, value_scale=256)[::-1] + gradients.gradient_hsl(
+        (255, 250, 245), (240, 230, 220), 35, value_scale=256) + gradients.gradient_hsl(
         (240, 230, 220), (100, 10, 10), 150, value_scale=256)
     BlueRed = sns.color_palette('RdBu_r', n_colors=400)
     DardRed = sns.mpl_palette("Reds_d", 400)[::-1]

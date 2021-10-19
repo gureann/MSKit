@@ -1,13 +1,22 @@
 import matplotlib.pyplot as plt
 
 
-def isometric_axes(left_init=0.05, bottom_init=0.05, right_end=0.9, top_end=0.9,
-                   ax_col_gap=0.1, ax_row_gap=0.1,
-                   row_num=2, col_num=5,
-                   total_num=None,
-                   f=None, *figure_args):  # TODO Support for inset_axes
-    if not f:
-        f = plt.figure(*figure_args)
+def isometric_axes(
+        left_init=0.05, bottom_init=0.05, right_end=0.9, top_end=0.9,
+        ax_col_gap=0.1, ax_row_gap=0.1,
+        row_num=2, col_num=5,
+        total_num=None,
+        container=None,
+        *figure_args
+):  # TODO support new ax args
+    if container is None:
+        container = plt.figure(*figure_args)
+    if isinstance(container, plt.Figure):
+        new_ax_method = container.add_axes
+    elif isinstance(container, plt.Axes):
+        new_ax_method = container.inset_axes
+    else:
+        raise ValueError(f'container should be `Figure` or `Axes` or `None`, now {type(container)}')
 
     if isinstance(ax_col_gap, (float, int)):
         ax_col_gap = [ax_col_gap] * (col_num - 1)
@@ -33,8 +42,8 @@ def isometric_axes(left_init=0.05, bottom_init=0.05, right_end=0.9, top_end=0.9,
         for col_index, x in enumerate(ax_x):
             if ax_num == total_num:
                 break
-            ax = f.add_axes([x, y, col_length, row_height])
+            ax = new_ax_method([x, y, col_length, row_height])
             axes_list.append(ax)
             ax_num += 1
 
-    return f, axes_list
+    return container, axes_list
