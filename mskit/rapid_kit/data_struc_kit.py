@@ -41,6 +41,26 @@ def sum_set_in_list(list_with_sets, return_type='set'):
         raise ValueError('Not supported return type when sum set list')
 
 
+def intersect_sets(*sets: set):
+    _set = sets[0]
+    if len(sets) >= 2:
+        for s in sets[1:]:
+            _set = _set & s
+    elif len(sets) == 1 and isinstance(_set, (list, tuple)):
+        intersect_sets(_set)
+    return _set
+
+
+def union_sets(*sets: set):
+    _set = sets[0]
+    if len(sets) >= 2:
+        for s in sets[1:]:
+            _set = _set | s
+    elif len(sets) == 1 and isinstance(_set, (list, tuple)):
+        union_sets(_set)
+    return _set
+
+
 def align_dict(*dn: dict, columns=None):
     aligned_list = []
     key_union = sorted(set(sum_list(dn)))

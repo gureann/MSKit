@@ -1,6 +1,3 @@
-from .compare_bar import comp_bar
-from .count_bar import count_bar
-from .cumu_bar import cumu_bar
+from .bars import cumu_bar, count_bar, comp_bar
 from .heatmap import scatter_heatmap
-from .pcc_hist import pcc_hist
-from .rt_reg import rt_reg
+from .ms_specific import pcc_hist, rt_reg

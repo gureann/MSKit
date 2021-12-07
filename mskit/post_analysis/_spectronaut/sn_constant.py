@@ -8,21 +8,6 @@ Spectronaut -> SN
 """
 
 
-class SNMod(object):
-    SNModToUnimod_13 = {
-        ''
-    }
-
-    def __init__(self, sn_version=14):
-        if sn_version >= 13:
-            self.sn_mod_to_unimod = self.SNModToUnimod_13
-        else:
-            pass
-
-    def sn_modpep_to_unimod_pep(self):
-        pass
-
-
 class LossType(object):
     SN_to_Readable = {
         'noloss': 'Noloss',
@@ -57,6 +42,216 @@ class LossType(object):
 
     SN_to_Readable_v13 = SN_to_Readable.copy()
     SN_to_Readable_v13['1(+H9+N+O8+P2)'] = '1,NH3;2,H3PO4',  # This will occur in SN 13
+
+
+class SNLibraryTitle(object):
+    LibraryMainCol = [
+        'PrecursorCharge',
+        'ModifiedPeptide',
+        'StrippedPeptide',
+        'iRT',
+        'LabeledPeptide',
+        'PrecursorMz',
+        'FragmentLossType',
+        'FragmentNumber',
+        'FragmentType',
+        'FragmentCharge',
+        'FragmentMz',
+        'RelativeIntensity',
+        'ProteinGroups']
+    LibraryMainColPGOut = [
+        'PrecursorCharge',
+        'ModifiedPeptide',
+        'StrippedPeptide',
+        'iRT',
+        'LabeledPeptide',
+        'PrecursorMz',
+        'FragmentLossType',
+        'FragmentNumber',
+        'FragmentType',
+        'FragmentCharge',
+        'FragmentMz',
+        'RelativeIntensity']
+
+
+SN_Lib_Dtype = {
+    'ReferenceRun': 'object',
+    'PrecursorCharge': 'int64',
+    'Workflow': 'object',
+    'IntModifiedPeptide': 'str',
+    'CV': 'float64',
+    'AllowForNormalization': 'bool',
+    'ModifiedPeptide': 'str',
+    'StrippedPeptide': 'str',
+    'iRT': 'float64',
+    'IonMobility': 'float64',
+    'iRTSourceSpecific': 'object',
+    'BGSInferenceId': 'object',
+    'IsProteotypic': 'bool',
+    'IntLabeledPeptide': 'str',
+    'LabeledPeptide': 'str',
+    'PrecursorMz': 'float64',
+    'ReferenceRunQvalue': 'float64',
+    'ReferenceRunMS1Response': 'float64',
+    'FragmentLossType': 'object',
+    'FragmentNumber': 'int64',
+    'FragmentType': 'str',
+    'FragmentCharge': 'int64',
+    'FragmentMz': 'float64',
+    'RelativeIntensity': 'float64',
+    'ExcludeFromAssay': 'bool',
+    'Database': 'object',
+    'ProteinGroups': 'object',
+    'UniProtIds': 'object',
+    'Protein Name': 'object',
+    'ProteinDescription': 'object',
+    'Organisms': 'object',
+    'OrganismId': 'object',
+    'Genes': 'object',
+    'Protein Existence': 'object',
+    'Sequence Version': 'object',
+    'FASTAName': 'object',
+}
+
+SN_NormalReport_Dtype = {
+    'R.Condition': 'object',  # may be string, int, float, nan
+    'R.FileName': 'str',
+    'R.Fraction': 'object',
+    'R.Replicate': 'object',  # may be int, nan
+
+    'PG.Genes': 'object',  # may be string, nan, or comb of two
+    'PG.Organisms': 'object',  # may be string, nan, or comb of two
+    'PG.ProteinGroups': 'object',
+    'PG.Coverage': 'object',  # may be nan or float in string like '1.1;2.2'
+    'PG.Cscore': 'float64',
+    'PG.Cscore (Run-Wise)': 'float64',
+    'PG.IsSingleHit': 'bool',
+    'PG.Pvalue': 'float64',
+    'PG.PValue (Run-Wise)': 'float64',
+    'PG.Qvalue': 'float64',
+    'PG.QValue (Run-Wise)': 'float64',
+    'PG.RunEvidenceCount': 'int64',
+    'PG.IBAQ': 'object',  # may be nan or float only or float in string like '1.1;2.2'
+    'PG.MS1Quantity': 'float64',
+    'PG.Meta': 'object',
+    'PG.OrganismId': 'object',
+    'PG.MS2Quantity': 'float64',
+    'PG.NrOfModifiedSequencesUsedForQuantification': 'int64',
+    'PG.Quantity': 'float64',
+
+    'PEP.GroupingKeyType': 'object',
+    'PEP.IsProteinGroupSpecific': 'object',  # usually bool if fasta provided, or str as "Unknown"
+    'PEP.IsProteotypic': 'object',  # usually bool if fasta provided, or str as "Unknown"
+    'PEP.NrOfMissedCleavages': 'object',  # usually int if fasta provided, or str as "Unknown"
+    'PEP.PeptidePosition': 'object',
+    'PEP.StrippedSequence': 'object',
+    'PEP.Rank': 'int64',
+    'PEP.RunEvidenceCount': 'int64',
+    'PEP.MS1Quantity': 'float64',
+    'PEP.MS2Quantity': 'float64',
+    'PEP.Quantity': 'float64',
+    'PEP.UsedForProteinGroupQuantity': 'bool',
+
+    'EG.IntModifiedPeptide': 'object',
+    'FG.IonMobility': 'float64',
+    'EG.iRTPredicted': 'float64',
+    'EG.IsDecoy': 'bool',
+    'EG.ModifiedPeptide': 'object',
+    'EG.Identified': 'bool',
+    'EG.PEP': 'float64',
+    'EG.Pvalue': 'float64',
+    'EG.Qvalue': 'float64',
+    'EG.Svalue': 'float64',
+    'EG.ApexRT': 'float64',
+    'EG.DatapointsPerPeak': 'float64',
+    'EG.DeltaiRT': 'float64',
+    'EG.DeltaRT': 'float64',
+    'EG.EndiRT': 'float64',
+    'EG.EndRT': 'float64',
+    'EG.FWHM': 'float64',
+    'EG.FWHM (iRT)': 'float64',
+    'EG.iRTEmpirical': 'float64',
+    'EG.MeanApexRT': 'float64',
+    'EG.MeanTailingFactor': 'float64',
+    'EG.PTMPositions [Carbamidomethyl (C)]': 'float64',
+    'EG.PTMPositions [Oxidation (M)]': 'float64',
+    'EG.PTMPositions [Acetyl (Protein N-term)]': 'float64',
+    'EG.PTMProbabilities [Carbamidomethyl (C)]': 'float64',
+    'EG.PTMProbabilities [Oxidation (M)]': 'float64',
+    'EG.PTMProbabilities [Acetyl (Protein N-term)]': 'float64',
+    'EG.PTMSites [Carbamidomethyl (C)]': 'float64',
+    'EG.PTMSites [Oxidation (M)]': 'float64',
+    'EG.PTMSites [Acetyl (Protein N-term)]': 'float64',
+    'EG.PeakWidth': 'float64',
+    'EG.PeakWidth (iRT)': 'float64',
+    'EG.RTPredicted': 'float64',
+    'EG.StartiRT': 'float64',
+    'EG.StartRT': 'float64',
+    'EG.SignalToNoise': 'float64',
+    'EG.AvgProfileQvalue': 'float64',
+    'EG.ConditionCV': 'float64',
+    'EG.GlobalCV': 'float64',
+    'EG.MaxProfileQvalue': 'float64',
+    'EG.MinProfileQvalue': 'float64',
+    'EG.PercentileQvalue': 'float64',
+    'EG.HasLocalizationInformation': 'bool',
+    'EG.ProteinPTMLocations': 'float64',
+    'EG.PTMAssayCandidateScore': 'float64',
+    'EG.PTMAssayProbability': 'float64',
+    'EG.PTMLocalizationProbabilities': 'object',
+    'EG.IsImputed': 'bool',
+    'EG.NormalizationFactor': 'float64',
+    'EG.TargetQuantity (Settings)': 'float64',
+    'EG.TotalQuantity (Settings)': 'float64',
+    'EG.UsedForPeptideQuantity': 'bool',
+    'EG.UsedForProteinGroupQuantity': 'bool',
+    'EG.UsedInNormalizationSet': 'bool',
+    'EG.Cscore': 'float64',
+    'EG.IntCorrScore': 'float64',
+    'EG.Noise': 'float64',
+
+    'FG.Charge': 'int64',
+    'FG.FragmentCount': 'int64',
+    'FG.PrecMz': 'float64',
+    'FG.PrecMzCalibrated': 'float64',
+    'FG.FWHM': 'float64',
+    'FG.PrecWindow': 'object',
+    'FG.PrecWindowNumber': 'int64',
+    'FG.PrecursorSignalToNoise': 'float64',
+    'FG.SignalToNoise': 'float64',
+    'FG.ShapeQualityScore': 'float64',
+    'FG.ShapeQualityScore (MS1)': 'float64',
+    'FG.ShapeQualityScore (MS2)': 'float64',
+    'FG.MS1IsotopeQuantity': 'object',
+    'FG.MS1Quantity': 'float64',
+    'FG.MS1RawQuantity': 'float64',
+    'FG.MS2Quantity': 'float64',
+    'FG.MS2RawQuantity': 'float64',
+    'FG.Quantity': 'float64',
+    'FG.CalibratedMassAccuracy (PPM)': 'float64',
+    'FG.CalibratedMz': 'float64',
+    'FG.MeasuredMz': 'float64',
+    'FG.Noise': 'float64',
+    'FG.PPMTolerance': 'float64',
+    'FG.RawMassAccuracy (PPM)': 'float64',
+    'FG.TheoreticalMz': 'float64',
+    'FG.Tolerance': 'float64',
+}
+
+
+class SNMod(object):
+    SNModToUnimod_13 = {
+        ''
+    }
+
+    def __init__(self, sn_version=14):
+        if sn_version >= 13:
+            self.sn_mod_to_unimod = self.SNModToUnimod_13
+        else:
+            pass
+
+    def sn_modpep_to_unimod_pep(self):
+        pass
 
 
 class BasicModInfo(object):
@@ -138,32 +333,3 @@ class ModType(BasicModInfo):
             else:
                 return ModType.ModDict_old
 
-
-class SNLibraryTitle(object):
-    LibraryMainCol = [
-        'PrecursorCharge',
-        'ModifiedPeptide',
-        'StrippedPeptide',
-        'iRT',
-        'LabeledPeptide',
-        'PrecursorMz',
-        'FragmentLossType',
-        'FragmentNumber',
-        'FragmentType',
-        'FragmentCharge',
-        'FragmentMz',
-        'RelativeIntensity',
-        'ProteinGroups']
-    LibraryMainColPGOut = [
-        'PrecursorCharge',
-        'ModifiedPeptide',
-        'StrippedPeptide',
-        'iRT',
-        'LabeledPeptide',
-        'PrecursorMz',
-        'FragmentLossType',
-        'FragmentNumber',
-        'FragmentType',
-        'FragmentCharge',
-        'FragmentMz',
-        'RelativeIntensity']

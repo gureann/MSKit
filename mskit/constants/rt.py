@@ -57,3 +57,6 @@ Q1 monoisotopic	Q1 average	Q3	relative intensity (approximate, TSQ-Vantage)	rank
 776.929	777.412	504.319	80	3	2	y	1	4	LFLQFGAQGSPFLK	iRT Kit_l	LFLQFGAQGSPFLK.y4.1+\
 """
 
+irt_to_rt = np.polyfit(df['iRT'], df['RT'], deg=1)
+rt_to_irt = np.polyfit(df['RT'], df['iRT'], deg=1)
+rt_irt_corr = scipy.stats.pearsonr(df['RT'], df['iRT'])

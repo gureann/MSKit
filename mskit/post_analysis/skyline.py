@@ -1,9 +1,18 @@
 import os
-from sys import argv
 
 import numpy as np
 import pandas as pd
 import scipy.stats
+
+from ._skyline import skyline_constants
+
+
+def reformat_skyline_unimodpep(x):
+    x = (x
+         .replace('unimod', 'UniMod'))
+    if 'UniMod:1' in x:
+        x = '(UniMod:1)' + x.replace('(UniMod:1)', '')
+    return x
 
 
 def read_need_list(list_content):
@@ -22,9 +31,9 @@ def read_need_list(list_content):
 
 
 def process_transition_file(
-    transition_file,
-    need_list: list = None,
-    kept_fragment_name: tuple = ('b1', 'b2', 'y1', 'y2'),
+        transition_file,
+        need_list: list = None,
+        kept_fragment_name: tuple = ('b1', 'b2', 'y1', 'y2'),
 ) -> pd.DataFrame:
     transition_df = pd.read_csv(transition_file, header=-1)
     if need_list is not None:
@@ -35,12 +44,13 @@ def process_transition_file(
     return transition_df
 
 
-if __name__ == '__main__':
-    trans_file = argv[1]
-    nl = read_need_list(argv[2])
-    trans_df = process_transition_file(trans_file, nl)
-    out_path = os.path.splitext(trans_file)[0] + '-Processed.csv'
-    trans_df.to_csv(out_path, index=False, header=False)
+# if __name__ == '__main__':
+#     from sys import argv
+#     trans_file = argv[1]
+#     nl = read_need_list(argv[2])
+#     trans_df = process_transition_file(trans_file, nl)
+#     out_path = os.path.splitext(trans_file)[0] + '-Processed.csv'
+#     trans_df.to_csv(out_path, index=False, header=False)
 
 
 def transition_list_filter(raw_file, pep_list):
@@ -75,7 +85,7 @@ def read_skyline_result(sky_file, partial_run_names=None):
         for each_rep in sample_list:
             if use_total_fragment_area:
                 each_fragment_area_sum = \
-                each_prec_df[each_prec_df['Replicate Name'] == each_rep]['Total Area Fragment'].iloc[0]
+                    each_prec_df[each_prec_df['Replicate Name'] == each_rep]['Total Area Fragment'].iloc[0]
             else:
                 try:
                     coeluting_true_df = each_fragment_df[each_fragment_df['Coeluting'] == True]
@@ -198,14 +208,13 @@ def write_result(input_file, quant_df, quant_df2=None):
         quant_df.style.applymap(lambda _: 'font-family: Aria').to_excel(f, sheet_name='RawData')
         quant_df2.style.applymap(lambda _: 'font-family: Aria').to_excel(f, sheet_name='RepDrop')
 
-
-if __name__ == '__main__':
-    result_file = r'.\Result.csv'
-    sample_identifier = 'Control,Experiment'
-    align_list = [1.1, 1.1, 1.1, 1.1] + [1.1, 1.1, 1.1, 1.1]
-    sample_identifier = sample_identifier.split(',')
-    raw_result_df = read_skyline_result(result_file, sample_identifier)
-    rep_drop_df = drop_rep(raw_result_df)
-    processed_result_df = stats_within_group(raw_result_df, sample_identifier)
-    processed_result_drop_df = stats_within_group(rep_drop_df, sample_identifier)
-    write_result(result_file, processed_result_df, processed_result_drop_df)
+# if __name__ == '__main__':
+#     result_file = r'.\Result.csv'
+#     sample_identifier = 'Control,Experiment'
+#     align_list = [1.1, 1.1, 1.1, 1.1] + [1.1, 1.1, 1.1, 1.1]
+#     sample_identifier = sample_identifier.split(',')
+#     raw_result_df = read_skyline_result(result_file, sample_identifier)
+#     rep_drop_df = drop_rep(raw_result_df)
+#     processed_result_df = stats_within_group(raw_result_df, sample_identifier)
+#     processed_result_drop_df = stats_within_group(rep_drop_df, sample_identifier)
+#     write_result(result_file, processed_result_df, processed_result_drop_df)

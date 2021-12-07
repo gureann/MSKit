@@ -32,7 +32,7 @@ def rgb_to_hex(rgb, rgb_base=255, with_sharp=True, upper=True):
     # Join hex codes to full hex color
     hex_code = ''.join(hex_list)
     if with_sharp:
-        hex_code = '#' + hex_code
+        hex_code = f'#{hex_code}'
     if upper:
         hex_code = hex_code.upper()
     return hex_code
@@ -73,9 +73,10 @@ def rgb_to_hsl(x, h_type='degree'):
             s = delta_value / (2 - min_value - max_value)
         delta_rgb = (((max_value - norm_rgb) / 6) + (delta_value / 2)) / delta_value
 
-        min_channel_idx = norm_rgb.argmin()
-        sec_calc_index = min_channel_idx + 1 if min_channel_idx < 2 else 0
-        h = min_channel_idx / 3 + delta_rgb[min_channel_idx - 1] - delta_rgb[sec_calc_index]
+        max_channel_idx = norm_rgb.argmax()
+        sec_calc_index = max_channel_idx + 1 if max_channel_idx < 2 else 0
+        h = max_channel_idx / 3 + delta_rgb[max_channel_idx - 1] - delta_rgb[sec_calc_index]
+
         if h < 0:
             h += 1
         elif h > 1:

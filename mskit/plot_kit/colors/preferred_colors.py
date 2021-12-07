@@ -11,3 +11,8 @@ DDA = ['#B78BBD']
 Virtual = ['#C6D0E0']
 Hybrid = ['#F6E0D2', '#EB634B']
 
+DarkGreyBlue = '#516E82'
+LightGreyBlue = '#81A8BF'
+
+BrickRed = '#A33931'
+LightBrickRed = '#C27E7E'

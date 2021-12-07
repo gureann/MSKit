@@ -10,6 +10,37 @@ import pandas as pd
 from .data_struc_kit import sum_list
 
 
+def split_file_nparts(
+        filepath: os.PathLike,
+        expected_nparts: int = 10,
+        required_part_idx: tuple = None,
+        start_pos: int = 0,
+        openmode: str = 'r',
+        writemode: str = 'w',
+        identifier_pos: str = 'before_suffix',
+):
+    dir_name = os.path.dirname(filepath)
+    basename, suffix = os.path.splitext(os.path.basename(filepath))
+    with open(filepath, openmode) as f:
+        size = f.seek(0, 2)
+        part_size = int(np.ceil(size / expected_nparts))
+        curr_pos = start_pos
+        f.seek(curr_pos)
+        for idx, end in enumerate([*list(range(part_size, size, part_size)), size], 1):
+            if required_part_idx is not None and idx not in required_part_idx:
+                continue
+            if identifier_pos == 'before_suffix':
+                new_file = os.path.join(dir_name, f'{basename}-Part{idx}_{end}.{suffix}')
+            elif identifier_pos == 'after_file':
+                new_file = f'{filepath}-Part{idx}_{end}'
+            else:
+                raise ValueError
+            with open(new_file, writemode) as f2:
+                while curr_pos <= end:
+                    f2.write(f.readline())
+                    curr_pos = f.tell()
+
+
 def adjust_file_block_pos(
         f: io.TextIOWrapper,
         start_pos: int,
@@ -127,7 +158,7 @@ def flatten_two_headers_file(
 
     """
     if isinstance(file, str):
-        if len(file) < 300 and os.path.exists(file):
+        if len(file) < 500 and os.path.exists(file):
             with open(file, 'r') as f:
                 file = f.readlines()
         else:
@@ -315,3 +346,27 @@ def data_dump_load_skip(file_path, data=None, cover_data=False, update_file=Fals
             with open(file_path, 'rb') as f:
                 data = pickle.load(f)
     return data
+
+
+def xlsx_sheets_to_text_files(
+        xlsx_path,
+        output_folder,
+        sheet_name_trans_func=lambda x: x.replace(' ', '_'),
+        skipped_row_idx=None,
+):
+    try:
+        import openpyxl
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError('Need module `openpyxl` to parse xlsx file and sheets')
+
+    wb = openpyxl.open(xlsx_path)
+    for sheet_name in wb.sheetnames:
+        sheet = wb[sheet_name]
+        used_name = sheet_name_trans_func(sheet_name)
+        with open(os.path.join(output_folder, f'{used_name}.txt'), 'w') as f:
+            for row_idx, row in enumerate(sheet.iter_rows(values_only=True)):
+                if isinstance(skipped_row_idx, (tuple, list)):
+                    if row_idx in skipped_row_idx:
+                        continue
+                row = '\t'.join([(str(_) if _ is not None else '') for _ in row])
+                f.write(row + '\n')

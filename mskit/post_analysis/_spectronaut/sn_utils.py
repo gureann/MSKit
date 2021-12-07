@@ -10,6 +10,7 @@ from .sn_constant import SNLibraryTitle
 
 __all__ = [
     'filter_inten_neutral_loss_pos',
+    'sn_modpep_to_unimodpep',
     'sn_modpep_to_intseq',
     'intseq_to_sn_modpep',
     'get_lib_prec',
@@ -62,6 +63,20 @@ def filter_inten_neutral_loss_pos(modpep, intens,
 
 def filter_inten_dict_with_phosloss(inten):
     pass
+
+
+def sn_modpep_to_unimodpep(x):
+    x = x.replace('_', '')
+    if '[Acetyl (Protein N-term)]' in x:
+        x = x.replace('[Acetyl (Protein N-term)]', '')
+        x = f'(UniMod:1){x}'
+    for sn_mod, unimod in {
+        '[Carbamidomethyl (C)]': '(UniMod:4)',
+        '[Oxidation (M)]': '(UniMod:35)',
+        '[Phospho (STY)]': '(UniMod:21)',
+    }.items():
+        x = x.replace(sn_mod, unimod)
+    return x
 
 
 def sn_modpep_to_intseq(x):
