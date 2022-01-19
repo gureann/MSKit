@@ -1,7 +1,7 @@
 
 _MAJOR_VERSION = 0
 _MINOR_VERSION = 4
-_MICRO_VERSION = 2
+_MICRO_VERSION = 3
 # _RELEASE_DATE = '.'
 # _RELEASE_TYPE = 'alpha'
 __version__ = '.'.join(
@@ -15,4 +15,4 @@ __email__ = 'lourh@shanghaitech.edu.cn'
 __repository__ = 'https://github.com/gureann/MSKit'
 __license__ = 'MIT'
 
-__short_description__ = 'A tool-kit for MS data processing'
+__short_description__ = 'Utils for MS data processing'

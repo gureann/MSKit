@@ -53,7 +53,7 @@ def batch_extract_seq_window(seq_list, fasta_dict: dict, n=7, ex_pad_symbol='_',
 
 def batch_add_target_mod(pep_list, mod_type: dict = None, mod_processor=None):
     """
-    TODO : This may result of some redundant results (dont know why)
+    TODO : This may result in some redundant results (dont know why)
     """
     modpep_list = []
     for pep in rapid_kit.drop_list_duplicates(pep_list):

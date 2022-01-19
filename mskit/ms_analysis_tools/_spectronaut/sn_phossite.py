@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from mskit.rapid_kit import substring_finder
-from .sn_utils import sn_modpep_to_intseq
+from mskit.ms_pred.deep_phospho import sn_modpep_to_intseq
 
 
 def init_phos_analysis(df,

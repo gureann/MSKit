@@ -1,9 +1,62 @@
+import os.path
 import re
+import sys
+import typing
 
 import numpy as np
 import pandas as pd
 
 from .text_kit import substring_finder
+
+
+def dask_series_map(
+        ddf_series,
+        map_dict: dict,
+        map_size_threshold=None,
+        client=None
+):
+    if map_size_threshold is None:
+        map_size_threshold = 1e5
+    if sys.getsizeof(map_dict) > map_size_threshold:
+        if client is None:
+            raise ValueError(
+                f'The size of input map is larger than threshold {scatter_map_size_threshold}, '
+                f'a client is needed to pass in this function to pre-submit large data')
+
+        def make_mapping():
+            return map_dict
+
+        mapping = client.submit(make_mapping)
+        return client.submit(ddf_series.map, mapping).result()
+    else:
+        return ddf_series.map(map_dict)
+
+
+def split_row_with_sep_cell(
+        df,
+        split_cols=(),
+        new_cols=(),
+        drop=(),
+        seps=(),
+) -> pd.DataFrame:
+    """
+    drop columns if new col names are assigned, or manurally control. But columns with no new col names are always dropped
+    """
+    df[split_cols] = df[split_cols].astype(str)
+    df = (
+        df
+            .drop(['AllProteins', 'Positions within protein', 'Best Ascores', 'IsFirstProtein'], axis=1)
+            .join(pd.concat([
+            (df[col].str.split(sep, expand=True).stack()
+             .reset_index(level=0).set_index('level_0')
+             .rename(columns={0: renamed_col}))
+            for col, renamed_col, sep in [
+                ('AllProteins', 'SingleProtein', ';'),
+                ('Positions within protein', 'ProteinPhosPos', '/'),
+                ('Best Ascores', 'Best Ascore', ','),
+                ('IsFirstProtein', 'IsFirstProtein', ';')]
+        ], axis=1))).reset_index(drop=True)
+    return df
 
 
 def select_row_with_target_col(df, ident, colname, return_col_list=None):
@@ -12,6 +65,47 @@ def select_row_with_target_col(df, ident, colname, return_col_list=None):
         return _df[return_col_list]
     else:
         return _df
+
+
+def df_to_file(df: pd.DataFrame, path: str, *args, **kws) -> None:
+    if path.endswith('.xlsx') or path.endswith('.xls'):
+        df.to_excel(path, *args, **kws)
+    elif path.endswith('.csv'):
+        df.to(path, sep=',', *args, **kws)
+    elif path.endswith('.txt') or path.endswith('.tsv'):
+        df.to(path, sep='\t', *args, **kws)
+    else:
+        raise ValueError
+
+
+def load_file_to_df(
+        path: str,
+        load_all_sheets: bool = True,
+        custom_raise_for_other_formats: Exception = None,
+        *args,
+        **kws
+) -> typing.Union[pd.DataFrame, typing.Dict[str, pd.DataFrame]]:
+    if path.endswith('.xlsx') or path.endswith('.xls'):
+        if load_all_sheets:
+            with pd.ExcelFile(path) as e:
+                sheets = e.sheet_names
+                if len(sheets) == 1:
+                    df = e.parse(sheets[0], *args, **kws)
+                else:
+                    df = e.parse(sheets, *args, **kws)
+        else:
+            df = pd.read_excel(path, *args, **kws)
+    elif path.endswith('.csv'):
+        df = pd.read_csv(path, sep=',', *args, **kws)
+    elif path.endswith('.txt') or path.endswith('.tsv'):
+        df = pd.read_csv(path, sep='\t', *args, **kws)
+    else:
+        if custom_raise_for_other_formats is not None:
+            raise custom_raise_for_other_formats
+        else:
+            raise ValueError(f'Only the following formats are included: `.xlsx, .xls, .txt, .tsv, .csv`. '
+                             f'Current file: {os.path.basename(path)}')
+    return df
 
 
 def extract_df_with_col_ident(original_df, identifiers, focus_col, return_col_list=None):

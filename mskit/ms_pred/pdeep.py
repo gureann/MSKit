@@ -5,9 +5,6 @@ from collections import defaultdict
 import pandas as pd
 
 from mskit import rapid_kit
-from mskit.post_analysis.spectronaut import SpectronautLibrary
-from ._pdeep_constant import BasicpDeepInfo
-from ._pdeep_constant import MOD
 
 
 def intprec_to_pdeep_test(intprec_list):
@@ -427,82 +424,83 @@ def read_inten_from_plabel(_plabel_file):
     return _p_inten_dict
 
 
-class pDeepSpectronaut(SpectronautLibrary):
-    def __init__(self, spectronaut_version=12):
-        super(pDeepSpectronaut, self).__init__(spectronaut_version)
-        self.plabel_title_list = BasicpDeepInfo.pDeepTrainsetTitle
+def prec_ion_info(one_psm_df: pd.DataFrame, spectronaut_run_name=True):
+    """
+    For pDeep trainset preparation.
+    This will receive get_one_prefix_result dataframe of one psm block and assemble get_one_prefix_result pd.series as one row of the plabel dataframe.
+    :param one_psm_df: This must contain columns after ['PrecursorCharge', 'StrippedPeptide', 'ModifiedPeptide',
+    'FragmentType', 'FragmentNumber', 'FragmentCharge', 'RelativeIntensity', 'FragmentLossType']
+    :param spectronaut_run_name: This can be choose as True or False and dont affect the result. This can make the plabel file have much information
+    :return: A series as one plabel dataframe row
+    """
+    first_row = one_psm_df.iloc[0]
+    prec_charge = first_row['PrecursorCharge']
+    if spectronaut_run_name:
+        run_title = first_row['ReferenceRun']
+        spec = '{title}.{charge}.0.0'.format(title=run_title, charge=prec_charge)
+    else:
+        spec = '{charge}.0.0'.format(charge=prec_charge)
 
-    def prec_ion_info(self, one_psm_df: pd.DataFrame, spectronaut_run_name=True):
-        """
-        For pDeep trainset preparation.
-        This will receive get_one_prefix_result dataframe of one psm block and assemble get_one_prefix_result pd.series as one row of the plabel dataframe.
-        :param one_psm_df: This must contain columns after ['PrecursorCharge', 'StrippedPeptide', 'ModifiedPeptide',
-        'FragmentType', 'FragmentNumber', 'FragmentCharge', 'RelativeIntensity', 'FragmentLossType']
-        :param spectronaut_run_name: This can be choose as True or False and dont affect the result. This can make the plabel file have much information
-        :return: A series as one plabel dataframe row
-        """
-        first_row = one_psm_df.iloc[0]
-        prec_charge = first_row['PrecursorCharge']
-        if spectronaut_run_name:
-            run_title = first_row['ReferenceRun']
-            spec = '{title}.{charge}.0.0'.format(title=run_title, charge=prec_charge)
-        else:
-            spec = '{charge}.0.0'.format(charge=prec_charge)
+    stripped_pep = first_row['StrippedPeptide']
+    mod_pep = first_row['ModifiedPeptide']
+    stripped_pep, modinfo = extract_pdeep_mod(mod_pep)
+    if modinfo == 'Unsupport':
+        return 'Unsupport'
+    current_prec_info = pd.Series(data=[spec, stripped_pep, modinfo] + [''] * 8, index=BasicpDeepInfo.pDeepTrainsetTitle)
 
-        stripped_pep = first_row['StrippedPeptide']
-        mod_pep = first_row['ModifiedPeptide']
-        stripped_pep, modinfo = extract_pdeep_mod(mod_pep)
-        if modinfo == 'Unsupport':
-            return 'Unsupport'
-        current_prec_info = pd.Series(data=[spec, stripped_pep, modinfo] + [''] * 8, index=self.plabel_title_list)
+    for row_index in one_psm_df.index:
+        line_series = one_psm_df.loc[row_index]
 
-        for row_index in one_psm_df.index:
-            line_series = one_psm_df.loc[row_index]
+        fragment_type = line_series['FragmentType']
+        fragment_num = line_series['FragmentNumber']
+        fragment_charge = line_series['FragmentCharge']
+        fragment_relative_intensity = line_series['RelativeIntensity']
+        fragment_losstype = line_series['FragmentLossType']
+        if fragment_type == 'b':
+            if fragment_losstype == 'noloss':
+                current_prec_info['b'] += 'b{num}+{charge},{relative_intensity};'.format(num=fragment_num, charge=fragment_charge,
+                                                                                         relative_intensity=fragment_relative_intensity)
+            elif fragment_losstype == 'NH3':
+                current_prec_info['b-NH3'] += 'b{num}-NH3+{charge},{relative_intensity};'.format(num=fragment_num, charge=fragment_charge,
+                                                                                                 relative_intensity=fragment_relative_intensity)
+            elif fragment_losstype == 'H2O':
+                current_prec_info['b-H2O'] += 'b{num}-H2O+{charge},{relative_intensity};'.format(num=fragment_num, charge=fragment_charge,
+                                                                                                 relative_intensity=fragment_relative_intensity)
+            else:
+                current_prec_info['b-ModLoss'] += 'b{num}-ModLoss+{charge},{relative_intensity};'.format(num=fragment_num, charge=fragment_charge,
+                                                                                                         relative_intensity=fragment_relative_intensity)
+        elif fragment_type == 'y':
+            if fragment_losstype == 'noloss':
+                current_prec_info['y'] += 'y{num}+{charge},{relative_intensity};'.format(num=fragment_num, charge=fragment_charge,
+                                                                                         relative_intensity=fragment_relative_intensity)
+            elif fragment_losstype == 'NH3':
+                current_prec_info['y-NH3'] += 'y{num}-NH3+{charge},{relative_intensity};'.format(num=fragment_num, charge=fragment_charge,
+                                                                                                 relative_intensity=fragment_relative_intensity)
+            elif fragment_losstype == 'H2O':
+                current_prec_info['y-H2O'] += 'y{num}-H2O+{charge},{relative_intensity};'.format(num=fragment_num, charge=fragment_charge,
+                                                                                                 relative_intensity=fragment_relative_intensity)
+            else:
+                current_prec_info['y-ModLoss'] += 'y{num}-ModLoss+{charge},{relative_intensity};'.format(num=fragment_num, charge=fragment_charge,
+                                                                                                         relative_intensity=fragment_relative_intensity)
+    return current_prec_info
 
-            fragment_type = line_series['FragmentType']
-            fragment_num = line_series['FragmentNumber']
-            fragment_charge = line_series['FragmentCharge']
-            fragment_relative_intensity = line_series['RelativeIntensity']
-            fragment_losstype = line_series['FragmentLossType']
-            if fragment_type == 'b':
-                if fragment_losstype == 'noloss':
-                    current_prec_info['b'] += 'b{num}+{charge},{relative_intensity};'.format(num=fragment_num, charge=fragment_charge,
-                                                                                             relative_intensity=fragment_relative_intensity)
-                elif fragment_losstype == 'NH3':
-                    current_prec_info['b-NH3'] += 'b{num}-NH3+{charge},{relative_intensity};'.format(num=fragment_num, charge=fragment_charge,
-                                                                                                     relative_intensity=fragment_relative_intensity)
-                elif fragment_losstype == 'H2O':
-                    current_prec_info['b-H2O'] += 'b{num}-H2O+{charge},{relative_intensity};'.format(num=fragment_num, charge=fragment_charge,
-                                                                                                     relative_intensity=fragment_relative_intensity)
-                else:
-                    current_prec_info['b-ModLoss'] += 'b{num}-ModLoss+{charge},{relative_intensity};'.format(num=fragment_num, charge=fragment_charge,
-                                                                                                             relative_intensity=fragment_relative_intensity)
-            elif fragment_type == 'y':
-                if fragment_losstype == 'noloss':
-                    current_prec_info['y'] += 'y{num}+{charge},{relative_intensity};'.format(num=fragment_num, charge=fragment_charge,
-                                                                                             relative_intensity=fragment_relative_intensity)
-                elif fragment_losstype == 'NH3':
-                    current_prec_info['y-NH3'] += 'y{num}-NH3+{charge},{relative_intensity};'.format(num=fragment_num, charge=fragment_charge,
-                                                                                                     relative_intensity=fragment_relative_intensity)
-                elif fragment_losstype == 'H2O':
-                    current_prec_info['y-H2O'] += 'y{num}-H2O+{charge},{relative_intensity};'.format(num=fragment_num, charge=fragment_charge,
-                                                                                                     relative_intensity=fragment_relative_intensity)
-                else:
-                    current_prec_info['y-ModLoss'] += 'y{num}-ModLoss+{charge},{relative_intensity};'.format(num=fragment_num, charge=fragment_charge,
-                                                                                                             relative_intensity=fragment_relative_intensity)
-        return current_prec_info
 
-    def plabel_trainset(self, output_path, spectronaut_run_name=True):
-        """
-        Write get_one_prefix_result pDeep trainset file by calling function prec_ion_info to process the library dataframe
-        """
-        trainset_df = pd.DataFrame(columns=self.plabel_title_list)
-        for each_psm_index in self.get_psm_block_index(self._lib_df):
-            current_prec_info = self.prec_ion_info(self._lib_df.loc[each_psm_index[0]: each_psm_index[1]], spectronaut_run_name)
-            if not isinstance(current_prec_info, pd.DataFrame):
-                continue
-            trainset_df = trainset_df.append(current_prec_info, ignore_index=True)
-        trainset_df.to_csv(output_path, sep='\t', index=False)
+# from mskit.ms_analysis_tools.spectronaut import SpectronautLibrary
+# class pDeepSpectronaut(SpectronautLibrary):
+#     def __init__(self, spectronaut_version=12):
+#         super(pDeepSpectronaut, self).__init__(spectronaut_version)
+#
+#     def plabel_trainset(self, output_path, spectronaut_run_name=True):
+#         """
+#         Write get_one_prefix_result pDeep trainset file by calling function prec_ion_info to process the library dataframe
+#         """
+#         trainset_df = pd.DataFrame(columns=BasicpDeepInfo.pDeepTrainsetTitle)
+#         for each_psm_index in self.get_psm_block_index(self._lib_df):
+#             current_prec_info = prec_ion_info(self._lib_df.loc[each_psm_index[0]: each_psm_index[1]], spectronaut_run_name)
+#             if not isinstance(current_prec_info, pd.DataFrame):
+#                 continue
+#             trainset_df = trainset_df.append(current_prec_info, ignore_index=True)
+#         trainset_df.to_csv(output_path, sep='\t', index=False)
 
 
 def extract_bracket(str_with_bracket):
@@ -593,6 +591,27 @@ def _plabel_from_mq(x):
     one_psm_data = [spec_name, pep, mod_info, *[inten_dict[_] for _ in ion_type_list]]
     return one_psm_data
 
+
+class BasicpDeepInfo(object):
+    pDeepTrainsetTitle = [
+        'spec',
+        'peptide',
+        'modinfo',
+        'b',
+        'b-NH3',
+        'b-H2O',
+        'b-ModLoss',
+        'y',
+        'y-NH3',
+        'y-H2O',
+        'y-ModLoss'
+    ]
+
+
+MOD = {
+    'Carbamidomethyl (C)': 'Carbamidomethyl[C]',
+    'Oxidation (M)': 'Oxidation[M]',
+}
 
 """  NOTICE This one is for MQ > 1.6, in which the modifications added in the peptide sequence was set as Phospho (STY) but not (ph) in 1.5
 

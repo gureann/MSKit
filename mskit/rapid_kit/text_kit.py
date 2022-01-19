@@ -1,6 +1,28 @@
+import random
 import re
+import string
+import typing
 
 from .data_struc_kit import str_mod_to_list
+
+
+def get_random_string(
+        symbols: typing.Union[list, tuple] = string.ascii_letters,
+        prefix: str = '',
+        suffix: str = '',
+        length: int = 16,
+        exclude: typing.Union[list, tuple, str, None] = None,
+        seed=None,
+):
+    if isinstance(seed, random.Random):
+        r = seed
+    else:
+        r = random.Random(seed)
+    rand_s_length = length - len(prefix) - len(suffix)
+    s = f'{prefix}{"".join(r.choices(symbols, k=rand_s_length))}{suffix}'
+    if exclude is not None and s in exclude:
+        s = get_random_string(symbols=symbols, prefix=prefix, suffix=suffix, length=length, exclude=exclude, seed=r)
+    return s
 
 
 def split_str_with_symbol_included_substring(

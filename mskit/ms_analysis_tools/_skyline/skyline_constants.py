@@ -37,7 +37,7 @@ Skyline_OutputDtype = {
     'Total Background Fragment': 'float64',
     'Total Area Normalized': 'object',
     'Average Mass Error PPM': 'float64',
-    'Identified': 'bool',
+    'Identified': 'object',  # Bool, and sometimes NANs
     'Library Dot Product': 'float64',
     'Precursor Normalized Area': 'float64',
 }

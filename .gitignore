@@ -2,6 +2,19 @@
 .idea
 .vscode
 
+# Backup
+Backup/
+
+# Local data
+_TestData
+
+# Temp doc
+~$*
+~*.tmp
+
+# Cache
+__MACOSX
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

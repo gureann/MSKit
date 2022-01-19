@@ -14,15 +14,23 @@ __all__ = [
 ]
 
 
+def read_fasta_re(fasta_file):
+    with open(fasta_file, 'r') as f:
+        raw_content = f.read()
+    title_seq_list = re.findall('(>.+?\\n)([^>]+\\n?)', raw_content)
+    return {title.strip('\n'): seq.replace('\n', '') for title, seq in title_seq_list}
+
+
 def read_fasta(
         fasta_file,
         sep: typing.Union[None, str] = '|',
         ident_idx: int = 1,
         ident_process_func: typing.Union[None, typing.Callable] = None,
         open_mode: str = 'r',
-        skip_row=None,
-        ignore_blank=False
-):
+        encoding: str = 'utf-8',
+        skip_row: int = None,
+        ignore_blank: bool = False
+) -> dict:
     """
     Use `sep=None` to skip parsing title
 
@@ -34,13 +42,13 @@ def read_fasta(
             [f.readline() for _ in range(skip_row)]
         for row in f:
             if open_mode == 'rb':
-                row = row.decode()
+                row = row.decode(encoding)
             if row.startswith('>'):
                 if seq_list:
                     fasta_dict[acc] = ''.join(seq_list)
 
                 if ident_process_func is not None:
-                    acc = ident_process_func(acc)
+                    acc = ident_process_func(row)
                 else:
                     if sep is None:
                         acc = row.strip('\n')
@@ -142,11 +150,9 @@ class FastaFile(object):
 
     def load_fasta(self, open_mode='r', method='re'):
         if method == 're':
-            with open(self.fasta_file_path, 'r') as f:
-                raw_content = f.read()
-            title_seq_list = re.findall('(>.+?\\n)([^>]+\\n?)', raw_content)
-            title_seq_list = [(title.strip('\n'), seq.replace('\n', '')) for title, seq in title_seq_list]
-            self.raw_entry_seq_map = dict(title_seq_list)
+            self.raw_entry_seq_map = read_fasta_re(
+                self.fasta_file_path
+            )
         else:
             self.raw_entry_seq_map = read_fasta(
                 self.fasta_file_path,

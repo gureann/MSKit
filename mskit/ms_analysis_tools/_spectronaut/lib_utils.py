@@ -6,6 +6,38 @@ import pandas as pd
 from mskit import rapid_kit as rk
 
 
+def check_valid_nonmod_loss(x, loss_name, allowed_aa_re):
+    """
+    df = df[df.apply(check_valid_nonmod_loss, axis=1, args=('NH3', '[KNQR]'))].copy()
+    df = df[df.apply(check_valid_nonmod_loss, axis=1, args=('H2O', '[DEST]'))].copy()
+    """
+    if x['FragmentLossType'] == loss_name:
+        allowed_pos = [_.end() for _ in re.finditer(allowed_aa_re, x['StrippedPeptide'])]
+        if len(allowed_pos) == 0:
+            return False
+        if (x['FragmentType'] == 'b') and (x['FragmentNumber'] < min(allowed_pos)):
+            return False
+        if (x['FragmentType'] == 'y') and (x['FragmentNumber'] < (len(x['StrippedPeptide']) - max(allowed_pos) + 1)):
+            return False
+    return True
+
+
+def check_valid_mod_loss(x, loss_name, mod_name):
+    """
+    df = df[df.apply(check_valid_mod_loss, axis=1, args=('H3PO4', '[Phospho (STY)]'))].copy()
+    """
+    if x['FragmentLossType'] == loss_name:
+        pep, mod_pos, extracted_mod_name = rk.find_substring(x['ModifiedPeptide'].replace('_', ''), '[', ']', keep_start_end_char=True)
+        allowed_pos = [mod_pos[i] for i, _ in enumerate(extracted_mod_name) if _ == mod_name]
+        if len(allowed_pos) == 0:
+            return False
+        if (x['FragmentType'] == 'b') and (x['FragmentNumber'] < min(allowed_pos)):
+            return False
+        if (x['FragmentType'] == 'y') and (x['FragmentNumber'] < (len(x['StrippedPeptide']) - max(allowed_pos) + 1)):
+            return False
+    return True
+
+
 def substract_snlib(snlib_1, snlib_2, col='Prec'):
     """
     将第一个 lib 按给定的 col 删除第二个 lib 中的内容

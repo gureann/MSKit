@@ -31,11 +31,13 @@ REQUIRED = [
 ]
 
 EXTRAS = {
+    'MSDataAccess': ['pymzml', 'pyteomics'],
     'SpeedUp': ['numba'],
     'Parallel': ['joblib', 'dask', 'distributed'],
     'Image': ['opencv-python'],
     'torch': ['pytorch'],
     'tensorflow': ['tensorflow-gpu'],
+    'GUI': ['wxpython'],
 }
 
 PACKAGEDATA = {

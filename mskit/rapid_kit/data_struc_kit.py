@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import pandas as pd
 
@@ -28,68 +30,17 @@ def recursive_sum_list(nested_list: list) -> list:
     return temp
 
 
-def sum_set_in_list(list_with_sets, return_type='set'):
-    union_set = list_with_sets[0]
-    if len(list_with_sets) >= 2:
-        for s in list_with_sets[1:]:
-            union_set = union_set | s
-    if return_type == 'set':
-        return union_set
-    elif return_type == 'list':
-        return list(union_set)
-    else:
-        raise ValueError('Not supported return type when sum set list')
+def drop_list_duplicates(initial_list: list) -> list:
+    return sorted(list(set(initial_list)), key=initial_list.index)
 
 
-def intersect_sets(*sets: set):
-    _set = sets[0]
-    if len(sets) >= 2:
-        for s in sets[1:]:
-            _set = _set & s
-    elif len(sets) == 1 and isinstance(_set, (list, tuple)):
-        intersect_sets(_set)
-    return _set
-
-
-def union_sets(*sets: set):
-    _set = sets[0]
-    if len(sets) >= 2:
-        for s in sets[1:]:
-            _set = _set | s
-    elif len(sets) == 1 and isinstance(_set, (list, tuple)):
-        union_sets(_set)
-    return _set
-
-
-def align_dict(*dn: dict, columns=None):
-    aligned_list = []
-    key_union = sorted(set(sum_list(dn)))
-    for key in key_union:
-        aligned_list.append([di.get(key, np.nan) for di in dn])
-    if columns is None:
-        columns = [f'D{i}' for i in range(1, len(dn) + 1)]
-    return pd.DataFrame(aligned_list, index=key_union, columns=columns)
-
-
-def split_two_set(set1, set2):
-    overlapped = set1 & set2
-    set1_unique = set1 - set2
-    set2_unique = set2 - set1
-    return set1_unique, overlapped, set2_unique
-
-
-def drop_list_duplicates(initial_list):
-    unique_list = list(set(initial_list))
-    unique_list = sorted(unique_list, key=initial_list.index)
-    return unique_list
-
-
-def intersect_lists(list_1, list_2, drop_duplicates=True):
-    intersected_list = [_ for _ in list_1 if _ in list_2]
+def intersect_lists(*lists, drop_duplicates=True):
+    temp = lists[0]
     if drop_duplicates:
-        return drop_list_duplicates(intersected_list)
-    else:
-        return intersected_list
+        temp = drop_list_duplicates(temp)
+    for l in lists[1:]:
+        temp = [_ for _ in temp if _ in l]
+    return temp
 
 
 def subtract_list(list_1, list_2, drop_duplicates=True):
@@ -100,11 +51,50 @@ def subtract_list(list_1, list_2, drop_duplicates=True):
         return subtracted_list
 
 
-def get_dict_coincide_data(dict_1, dict_2):
-    shared_keys = list(set(dict_1.keys()) & set(dict_2.keys()))
-    value_list_1 = [dict_1[_] for _ in shared_keys]
-    value_list_2 = [dict_2[_] for _ in shared_keys]
-    return shared_keys, value_list_1, value_list_2
+def union_dicts(*dicts: dict, init=None, copy_init=True, iter_depth=-1):
+    if init is None:
+        temp = {}
+    else:
+        temp = copy.deepcopy(init) if copy_init else init
+    for d in dicts:
+        temp.update(d)
+    return temp
+
+
+def intersect_dict(*dicts) -> dict:
+    shared_keys = intersect_sets(*dicts)
+    return {k: v for k, v in dicts[0].items() if k in shared_keys}
+
+
+def align_dict(*dn: dict, columns=None, none_value=np.nan):
+    aligned_list = []
+    key_union = sorted(set(sum_list(dn)))
+    for key in key_union:
+        aligned_list.append([di.get(key, none_value) for di in dn])
+    if columns is None:
+        columns = [f'D{i}' for i in range(1, len(dn) + 1)]
+    return pd.DataFrame(aligned_list, index=key_union, columns=columns)
+
+
+def union_sets(*sets):
+    _set = sets[0]
+    for s in sets[1:]:
+        _set = _set | s
+    return _set
+
+
+def intersect_sets(*sets, iter_depth=-1):
+    _set = sets[0]
+    for s in sets[1:]:
+        _set = _set & s
+    return _set
+
+
+def split_two_set(set1, set2):
+    overlapped = set1 & set2
+    set1_unique = set1 - set2
+    set2_unique = set2 - set1
+    return set1_unique, set2_unique, overlapped
 
 
 def str_mod_to_list(mod):

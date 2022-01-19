@@ -247,9 +247,23 @@ SOLVENT-PATH-DISTANCE GRID RELATED:
 
 import os
 import re
+import subprocess
+import threading
+import time
+import traceback
+import typing
 
 import numpy as np
 import pandas as pd
+
+from mskit import rapid_kit as rk
+from mskit.constants.aa import AA
+from mskit.sequence.fasta import read_fasta
+
+try:
+    import wx
+except ModuleNotFoundError:
+    pass
 
 
 def extract_xwalk_cmd(xwalk_cmd):
@@ -259,7 +273,7 @@ def extract_xwalk_cmd(xwalk_cmd):
     a2 = re.findall('-a2 (.+?) ', xwalk_cmd, re.I)[0]
     inter_intra = re.findall('-(inter|intra)', xwalk_cmd, re.I)
     inter_intra = inter_intra[0] if inter_intra else None
-    max_length = re.findall('-max (\d+?)[> ]', xwalk_cmd, re.I)[0]
+    max_length = re.findall(r'-max (\d+?)[> ]', xwalk_cmd, re.I)[0]
     return aa1, aa2, a1, a2, inter_intra, max_length
 
 
@@ -320,155 +334,314 @@ class SiteConverter(object):
 
     def __init__(
             self,
-            conversion_file,
-            sheet_name=None,
-            pdb_sites_col_name='PDBPos',
-            fasta_sites_col_name='FastaPos',
-            aa3_col_name='',
+            logger=None,
     ):
+        """
+        TODO change names of PDB and FASTA to Alternative and Standard
+        FASTA-PDB site mapper
+        """
+        self.logger = logger
 
-        self.conversion_info_df = self._read_conversion_file(conversion_file, sheet_name)
+        self._aa_3to1 = {k.upper(): v.upper() for k, v in AA.AA_3to1.items()}
+        self._aa_1to3 = {k.upper(): v.upper() for k, v in AA.AA_1to3.items()}
 
-        self.pdb_sites = self.conversion_info_df[pdb_sites_col_name].tolist()
-        self.fasta_sites = self.conversion_info_df[fasta_sites_col_name].tolist()
-        self.correspond_aa3 = self.conversion_info_df[aa3_col_name].tolist()
+        self.conversion_tables: typing.Dict[str, pd.DataFrame] = dict()
+        self.converter_num: int = 0
 
-    @staticmethod
-    def _read_conversion_file(conversion_file, sheet_name=None) -> pd.DataFrame:
-        if conversion_file.endswith('xlsx') or conversion_file.endswith('xls'):
-            df = pd.read_excel(conversion_file, dtype=str, sheet_name=sheet_name)
-        elif conversion_file.endswith('txt') or conversion_file.endswith('tsv'):
-            df = pd.read_csv(conversion_file, sep='\t', dtype=str)
-        elif conversion_file.endswith('csv'):
-            df = pd.read_csv(conversion_file, sep=',', dtype=str)
+        self._pdb_site: typing.Dict[str, list] = dict()
+        self._fasta_site: typing.Dict[str, list] = dict()
+        self._aa3: typing.Dict[str, list] = dict()
+
+    def set_logger(self, logger):
+        self.logger = logger
+
+    def _parse_conversion_input(
+            self,
+            conversion_input,
+            exclude=None,
+            name=None
+    ) -> typing.Dict[str, pd.DataFrame]:
+
+        if isinstance(conversion_input, pd.DataFrame):
+            if name is None:
+                raise ValueError(f'A name should be assigned to site converter if pd.DataFrame is transferred')
+            return {name: conversion_input}
+        elif isinstance(conversion_input, str):
+            if os.path.isdir(conversion_input):
+                files = {os.path.splitext(file)[0]: os.path.join(conversion_input, file)
+                         for file in os.listdir(conversion_input) if file not in exclude}
+            elif os.path.isfile(conversion_input):
+                if conversion_input in exclude:
+                    files = {}
+                elif name is None:
+                    files = {os.path.splitext(os.path.basename(conversion_input))[0]: conversion_input}
+                else:
+                    files = {name: conversion_input}
+            else:
+                raise ValueError(f'Input conversion data is neither file or folder, nor a pd.DataFrame')
+            if self.logger is not None:
+                self.logger.info(f'SiteConverter will load conversion files: {conversion_input}')
+            dfs = dict()
+            for name, file in files.items():
+                df = rk.load_file_to_df(
+                    file, load_all_sheets=True,
+                    custom_raise_for_other_formats=ValueError(
+                        f'Input file for PDB-FASTA site conversion should have format '
+                        f'in `.xlsx, .xls, .txt, .tsv, .csv`. Now {os.path.basename(file)}'),
+                    dtype=str)
+                if isinstance(df, pd.DataFrame):
+                    dfs[name] = df
+                elif isinstance(df, dict):
+                    dfs.update(df)
+                else:
+                    raise ValueError
+            return dfs
         else:
-            raise
-        return df
+            raise ValueError(f'Only a file path or pd.DataFrame is valid for SiteConverter')
 
-    def pdb_to_fasta(self, pdb_pos):
-        try:
-            idx = self.pdb_sites.index(pdb_pos)
-            return self.correspond_aa3[idx], self.fasta_sites[idx]
-        except ValueError:
-            print('not find pdb position: {}'.format(pdb_pos))
-            return None
+    def _parse_conversion_table(
+            self,
+            dfs: typing.Dict[str, pd.DataFrame],
+            pdb_site_col_name: str = 'PDB',
+            fasta_site_col_name: str = 'FASTA',
+            aa_col_name: str = 'AA3',
+            aa_type: str = 'AA3',
+            fasta_file: str = None,
+    ):
+        for name, df in dfs.items():
+            if self.logger is not None:
+                self.logger.info(f'SiteConverter parsing conversion table: {name}')
+            if pdb_site_col_name not in df.columns or fasta_site_col_name not in df.columns:
+                raise ValueError(f'Columns {pdb_site_col_name} and {fasta_site_col_name} are assigned to AA position for `PDB` and `FASTAS`,'
+                                 f'but the columns are not complete')
+            df = df.copy()
+            df[[pdb_site_col_name, fasta_site_col_name]] = df[[pdb_site_col_name, fasta_site_col_name]].astype(int)
+            df = df.replace('', np.nan)
+            df = df.dropna(axis=0, how="any", subset=[pdb_site_col_name, fasta_site_col_name])
 
-    def fasta_to_pdb(self, fasta_pos):
+            if fasta_file is not None:
+                fasta = read_fasta(fasta_file, sep='>', ident_idx=1)
+                df['AA1'] = df[fasta_site_col_name].apply(lambda x: fasta[x - 1])
+                aa_col_name = 'AA1'
+                aa_type = 'AA1'
+            if aa_type == 'AA1':
+                df['AA3'] = df[aa_col_name].map(self._aa_1to3)
+                aa_col_name = 'AA3'
+            elif aa_type != 'AA3':
+                raise ValueError(f'aa_type should be either AA1 or AA3. Now {aa_type}')
+
+            self._pdb_site[name] = df[pdb_site_col_name].tolist()
+            self._fasta_site[name] = df[fasta_site_col_name].tolist()
+            self._aa3[name] = df[aa_col_name].tolist()
+
+    def add_converter(
+            self,
+            conversion_input: typing.Union[str, pd.DataFrame],
+            exclude=('ProteinIdentifierMatch.xlsx',),
+            name: str = None,
+            pdb_site_col_name: str = 'PDB',
+            fasta_site_col_name: str = 'FASTA',
+            aa_col_name: str = 'AA3',
+            aa_type: str = 'AA3',
+            fasta_file: str = None,
+    ):
         """
-        :param fasta_pos: type=str
-        :return: similar to previous function
+        Either `fasta_file` or (`aa_col_name` and `aa_type`) should be provided
         """
-        try:
-            idx = self.fasta_sites.index(fasta_pos)
-            return self.correspond_aa3[idx], self.pdb_sites[idx]
-        except ValueError:
-            print('not find fasta position: {}'.format(fasta_pos))
-            return None
+        if self.logger is not None:
+            self.logger.info(f'SiteConverter adding conversion input: {conversion_input}')
+        dfs = self._parse_conversion_input(conversion_input, exclude=exclude, name=name)
+        self.conversion_tables.update(dfs)
+        self._parse_conversion_table(
+            dfs=dfs,
+            pdb_site_col_name=pdb_site_col_name, fasta_site_col_name=fasta_site_col_name,
+            aa_col_name=aa_col_name, aa_type=aa_type, fasta_file=fasta_file)
+        self.refresh_converter_num()
 
-    def pdb_to_aa(self, pdb_pos):
-        try:
-            idx = self.pdb_sites.index(pdb_pos)
-            return self.correspond_aa3[idx]
-        except ValueError:
-            print('not find pdb position {}'.format(pdb_pos))
-            return None
+    def refresh_converter_num(self):
+        self.converter_num = len(self._pdb_site)
 
-    def fasta_to_aa(self, fasta_pos):
+    def __getitem__(self, item):
         try:
-            idx = self.fasta_sites.index(fasta_pos)
-            return self.correspond_aa3[idx]
+            return self._pdb_site[item], self._fasta_site[item], self._aa3[item]
+        except IndexError:
+            raise IndexError(f'{item} has not been added to SiteConverter')
+
+    def pdb_to_fasta(self, pdb_pos, name=None):
+        if name is None and self.converter_num == 1:
+            name = list(self._pdb_site.keys())[0]
+        try:
+            idx = self._pdb_site[name].index(pdb_pos)
+            return self._fasta_site[name][idx], self._aa3[name][idx]
         except ValueError:
-            print('not find fasta position {}'.format(fasta_pos))
+            if self.logger is not None:
+                self.logger.info(f'SiteConverter can not find PDB position {pdb_pos} in {name}')
             return None
+        except KeyError:
+            raise KeyError(f'No protein named "{name}" when converting this protein from PDB to FASTA. This protein should be defined in protein identifier conversion table')
+
+    def fasta_to_pdb(self, fasta_pos, name=None):
+        if name is None and self.converter_num == 1:
+            name = list(self._fasta_site.keys())[0]
+        try:
+            idx = self._fasta_site[name].index(fasta_pos)
+            return self._pdb_site[name][idx], self._aa3[name][idx]
+        except ValueError:
+            if self.logger is not None:
+                self.logger.info(f'SiteConverter can not find FASTA position {fasta_pos} in {name}')
+            return None
+        except KeyError:
+            raise KeyError(f'No protein named "{name}" when converting this protein from FASTA to PDB. This protein would be expected to be a `standard protein identifer`')
 
 
 class XwalkRunner(object):
-    """
-
-    """
-    xwalk_command_template = ('java -Xmx1024m -cp "{xwalk_bin}" Xwalk'
-                              ' -infile "{pdb_path}"'
-                              ' -pymol -out "{pymol_output}"'
-                              ' -dist "{xwalk_input_file}"'
-                              ' -max {max_distance} -bb -homo >"{output_path}"')
+    xwalk_command_template = (
+        'java -Xmx1024m -cp "{xwalk_bin}" Xwalk'
+        ' -infile "{pdb_path}"'
+        ' -pymol -out "{pymol_output}"'
+        ' -dist "{xwalk_input_file}"'
+        ' -max {max_distance} -bb -homo'
+        ' >"{output_path}"'
+    )
+    xwalk_output_title = (
+        'IDX',
+        'PDBFileName',
+        'AA_1',
+        'AA_2',
+        'PDBSeqDist',
+        'Euclidean',
+        'SAS',
+        'Prob_Euclidean_DSS_BS3',
+        'Prob_SAS_DSS_BS3',
+        'ShortestTypPep',
+    )
+    linker_linked_aa = {
+        'ArGO': (('Arg', 'Arg'),),
+        'KArGO': (('Lys', 'Arg'),),
+        'EGS': (('Lys', 'Lys'),),
+        'DSS': (('Lys', 'Lys'),),
+        'BS3': (('Lys', 'Lys'),),
+        'PDH': (('Glu', 'Asp'), ('Glu', 'Glu'), ('Asp', 'Asp')),
+        'EDC': (('Lys', 'Glu'), ('Lys', 'Asp')),
+    }
 
     def __init__(
             self,
-            result_df: pd.DataFrame,
-            link_info_colname,
-            xwalk_dist_folder,
-            pymol_folder,
-            xwalk_bin_folder,
-            pdb_path,
-            max_distance: int = 100,
-            equal_struct_fasta_aa_pos: bool = False,
-            site_converter: dict = None,
-            prot_mapper=None,
-            linker_aa_file: str = None,
-            task_identifier: str = None,
+            xwalk_input_file_path=None,
+            pdb_path=None,
+            xwalk_output_path=None,
             logger=None,
+            linker_aa_file=None,
     ):
 
-        self.result_df = result_df
-        self.link_info_colname = link_info_colname
-        self.all_link_info = self.result_df[self.link_info_colname].drop_duplicates().tolist()
+        self._xwalk_input_file_path = xwalk_input_file_path
+        self._pdb_path = pdb_path
+        self._xwalk_output_path = xwalk_output_path
+        self._result_df = None
 
-        self.xwalk_dist_folder = xwalk_dist_folder
-        self.pymol_folder = pymol_folder
-        self.xwalk_bin_folder = xwalk_bin_folder
-        self.pdb_path = pdb_path
-        for folder in [xwalk_dist_folder, pymol_folder, xwalk_bin_folder]:
-            os.makedirs(folder, exist_ok=True)
+        self.logger = logger
 
-        self.max_distance = max_distance
-        if equal_struct_fasta_aa_pos:
-            self.use_site_converter = False
-        else:
-            self.use_site_converter = True
-            if site_converter is None:
-                raise ValueError
-            self.site_converter = site_converter
-
-        if prot_mapper is None:
-            self.prot_mapper_to_pdb = {
-                'DNGAS': 'A',
-                'DNG': 'A',
-                'A': 'A',
-                'GNB1': 'B',
-                'B': 'B',
-                'GNG2': 'G',
-                'G': 'G',
-                'Nb35': 'N',
-                'NB35': 'N',
-                'N': 'N',
-                'GLP1R': 'R',
-                'R': 'R',
-                'GLP1': 'P',
-                'GL': 'P',
-                'P': 'P',
-            }
-        else:
-            self.prot_mapper_to_pdb = prot_mapper
-
-        if linker_aa_file is None:
-            self.linker_linked_aa = {
-                'ArGO': (('Arg', 'Arg'),),
-                'KArGO': (('Lys', 'Arg'),),
-                'EGS': (('Lys', 'Lys'),),
-                'DSS': (('Lys', 'Lys'),),
-                'BS3': (('Lys', 'Lys'),),
-                'PDH': (('Glu', 'Asp'), ('Glu', 'Glu'), ('Asp', 'Asp')),
-                'EDC': (('Lys', 'Glu'), ('Lys', 'Asp')),
-            }
-        else:
-            self.linker_linked_aa = dict()
+        if linker_aa_file is not None:
             self._read_linker_linking_info(linker_aa_file)
 
-        self.task_identifier = task_identifier
+    def set_logger(self, logger):
         self.logger = logger
-        self.xwalk_result = dict()
 
-        self.output_file_path = os.path.join(self.xwalk_dist_folder, self.task_identifier + '-xwalk_output.tsv')
+    def generate_xwalk_input(
+            self,
+            xwalk_pdb_pos_pair: list,
+            pdb_filename: str = None,
+            output_path: str = None,
+    ):
+        """
+        :param xwalk_pdb_pos_pair: list of xwalk used position pairs with protein and position in PDB scale,
+                                   like [('LYS-338-A-CA', 'SER-352-A-CA), (...), ...]
+        :param pdb_filename: filename of used PDB file, like 0409-GLP-1R.pdb
+        :param output_path:
+        """
+        if self.logger is not None:
+            self.logger.info(f'XwalkRunner generating xwalk input, with {len(xwalk_pdb_pos_pair)} pairs, PDB file {pdb_filename}, and output to {output_path}')
+        if pdb_filename is None:
+            pdb_filename = os.path.basename(self._pdb_path)
+
+        xwalk_input = []
+        for idx, pair in enumerate(xwalk_pdb_pos_pair, 1):
+            xwalk_input.append('{}\t{}\t{}\t{}\n'.format(idx, pdb_filename, *pair))
+
+        xwalk_input = rk.drop_list_duplicates(xwalk_input)
+        if self.logger is not None:
+            self.logger.info(f'XwalkRunner final non-redundant xwalk input, with {len(xwalk_input)} pairs')
+
+        if output_path is None:
+            output_path = self._xwalk_input_file_path
+        else:
+            self._xwalk_input_file_path = output_path
+
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, 'w') as f:
+            f.write(''.join(xwalk_input))
+
+    def generate_xwalk_command(
+            self,
+            xwalk_bin,
+            pymol_output,
+            xwalk_input_file,
+            max_distance,
+            pdb_path: str = None,
+            output_path: str = None,
+    ):
+        if pdb_path is None:
+            pdb_path = self._pdb_path
+        else:
+            self._pdb_path = pdb_path
+
+        if output_path is None:
+            output_path = self._xwalk_output_path
+        else:
+            self._xwalk_output_path = output_path
+
+        command = self.xwalk_command_template.format(
+            xwalk_bin=xwalk_bin, pdb_path=pdb_path, pymol_output=pymol_output,
+            xwalk_input_file=xwalk_input_file, max_distance=max_distance,
+            output_path=output_path)
+
+        os.makedirs(os.path.dirname(self._xwalk_output_path), exist_ok=True)
+
+        if self.logger is not None:
+            self.logger.info(f'XwalkRunner generated xwalk command: `{command}`')
+        return command
+
+    def run_xwalk(self, command, new_thread=False, gui_window=None, **params):
+        if command is None:
+            command = self.generate_xwalk_command(**params)
+        if 'output_path' in params:
+            os.makedirs(os.path.dirname(params['output_path']), exist_ok=True)
+
+        if new_thread:
+            runner_thread = XwalkRunnerThread(name=None, logger=self.logger, window=gui_window)
+            runner_thread.setDaemon(True)
+            runner_thread.set_cmd(command)
+            runner_thread.start()
+            runner_thread.join()
+        else:
+            if self.logger is not None:
+                self.logger.info(f'XwalkRunner start running command: `{command}`')
+            code = os.system(command)
+            if code == -1:
+                raise RuntimeError(f'Xwalk failed')
+
+        if self.logger is not None:
+            self.logger.info(f'XwalkRunner Xwalk completed')
+
+    def collect_results(self, path=None):
+        if path is None:
+            path = self._xwalk_output_path
+        if self.logger is not None:
+            self.logger.info(f'XwalkRunner collecting result from {path}')
+
+        self._result_df = pd.read_csv(path, sep='\t', low_memory=False, header=None)
+        self._result_df.columns = self.xwalk_output_title
+        return self._result_df
 
     def _read_linker_linking_info(self, linker_aa_file):
         with open(linker_aa_file, 'r') as f:
@@ -487,84 +660,67 @@ class XwalkRunner(object):
                     for aa_num in range(len(split_row[1:]) // 2)
                 )
 
-    def _convert_sites(self, site, consensus_prot):
-        if self.use_site_converter:
-            convert_result = self.site_converter[consensus_prot].fasta_to_pdb(site)
-            if convert_result is None:
-                return None
-            aa3, pdb_pos = convert_result
-            return '{}-{}-{}-CA'.format(aa3, pdb_pos, consensus_prot)
-        else:
-            convert_result = self.site_converter[consensus_prot].pdb_to_aa(site)
-            if convert_result is None:
-                return None
-            aa3 = convert_result
-            return '{}-{}-{}-CA'.format(aa3, site, consensus_prot)
 
-    def generate_xwalk_input(self):
+class XwalkRunnerThread(threading.Thread):
+    def __init__(self, name=None, logger=None, window=None, *args, **kwargs):
+        super(XwalkRunnerThread, self).__init__(*args, **kwargs)
+
+        if name is None:
+            name = time.strftime("%Y-%m-%d %H.%M.%S", time.localtime())
+
+        self.logger = logger
+        self.window = window
+
+        self.runner_process = None
+        self.cmd = None
+        self.terminated = False
+
+    def set_logger(self, logger):
+        self.logger = logger
+
+    def set_cmd(self, cmd):
         if self.logger is not None:
-            self.logger.info('Generate xwalk input for {}'.format(self.task_identifier))
+            self.logger.info(f'XwalkRunnerThread {self.name} set command as `{cmd}`')
+        self.cmd = cmd
 
-        xwalk_input = ''
-        for idx, link_info in enumerate(self.all_link_info, 1):
-            re_match = re.match('(.+?)\((\d+)\)-(.+?)\((\d+)\).*', link_info)
+    def run(self):
+        if self.logger is not None:
+            self.logger.info(f'XwalkRunnerThread start thread')
+        self.terminated = False
+        try:
+            if self.logger is not None:
+                self.logger.info(f'XwalkRunnerThread {self.name} start. Command: `{self.cmd}`')
+            self.runner_process = subprocess.Popen(self.cmd)
+            self.runner_process.wait()
+            if self.terminated:
+                pass
+            elif self.runner_process.poll() is None:
+                raise ValueError('Xwalk is still running')
+            elif self.runner_process.poll() == 0:
+                if self.window is not None:
+                    wx.CallAfter(self.window.running_done)
+                if self.logger is not None:
+                    self.logger.info(f'XwalkRunnerThread Xwalk task {self.name} finished')
+            else:
+                if self.window is not None:
+                    wx.CallAfter(self.window.running_error)
+                if self.logger is not None:
+                    self.logger.error(f'XwalkRunnerThread Xwalk task {self.name} error')
+        except Exception:
+            tb = traceback.format_exc()
+            if self.logger is not None:
+                self.logger.error(f'XwalkRunnerThread Xwalk task {self.name} error: {tb}')
+            if self.window is not None:
+                wx.CallAfter(self.window.running_error)
+            else:
+                raise Exception
+        finally:
+            self.terminated = False
 
-            input_aa1 = self._convert_sites(re_match.group(2), self.prot_mapper_to_pdb[re_match.group(1)])
-            input_aa2 = self._convert_sites(re_match.group(4), self.prot_mapper_to_pdb[re_match.group(3)])
-
-            if input_aa1 is not None and input_aa2 is not None:
-                xwalk_input += '{}\t{}\t{}\t{}\n'.format(
-                    idx, os.path.basename(self.pdb_path),
-                    input_aa1,
-                    input_aa2
-                )
-        with open(os.path.join(self.xwalk_dist_folder, self.task_identifier + '.tsv'), 'w') as f:
-            f.write(xwalk_input)
-
-    def fillin_command(self, start_time):
-        str_pymol_filename = self.task_identifier + start_time + '.pml'
-        command = self.xwalk_command_template.format(
-            xwalk_bin=self.xwalk_bin_folder,
-            pdb_path=self.pdb_path,
-            pymol_output=os.path.join(self.pymol_folder, str_pymol_filename),
-            xwalk_input_file=os.path.join(self.xwalk_dist_folder, self.task_identifier + '.tsv'),
-            max_distance=self.max_distance,
-            output_path=self.output_file_path,
-        )
-        return command
-
-    def run_xwalk(self, start_time=None):
-        if start_time is None:
-            start_time = ''
-        command = self.fillin_command(start_time)
-        print('start cmd {}'.format(command))
-        os.system(command)
-        print('{} complete'.format(self.task_identifier))
-
-    def collect_xwalk_result(self, output_file_path=None):
-        if output_file_path is not None:
-            self.output_file_path = output_file_path
-
-        with open(self.output_file_path, 'r') as f:
-            xwalk_output = f.read().strip('\n').split('\n')
-
-        for row in xwalk_output:
-            split_row = row.split('\t')
-            idx = int(split_row[0])
-            surface_distance = float(split_row[6])
-            link_info = self.all_link_info[idx - 1]
-            self.xwalk_result[link_info] = surface_distance
-
-    def add_distance_to_plink_result(self):
-        self.result_df['SASDs'] = self.result_df[self.link_info_colname].apply(
-            lambda x: self.xwalk_result[x] if x in self.xwalk_result else np.nan)
-
-    def get_result(self):
-        return self.result_df.copy()
-
-    def run_xwalk_pipeline(self):
-        self.generate_xwalk_input()
-        self.run_xwalk()
-        self.collect_xwalk_result()
-        self.add_distance_to_plink_result()
-        return self.get_result()
+    def terminate(self):
+        self.runner_process.terminate()
+        self.terminated = True
+        if self.window is not None:
+            wx.CallAfter(self.window.running_cancel)
+        if self.logger is not None:
+            self.logger.error(f'XwalkRunnerThread Xwalk task {self.name} terminated')

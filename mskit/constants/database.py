@@ -1,6 +1,8 @@
 """
 ProteomeXchange
     Pride
+    Massive
+    JPOST
 
 """
 
@@ -29,7 +31,6 @@ class ProteomeXchange:
         HTTPS_Url = 'https://ftp.pride.ebi.ac.uk'
 
         PRIDE_StoragePrefix = '/pride/data/archive/'
-
 
     class Massive:
         FTP_Url = 'ftp://massive.ucsd.edu'

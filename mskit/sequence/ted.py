@@ -1,6 +1,8 @@
 import re
 from typing import Union
 
+import numpy as np
+
 from mskit import rapid_kit as rk
 from mskit.constants.enzyme import Enzyme
 
@@ -40,6 +42,7 @@ class TED(object):
         self._max_len = max_len
         self._enzyme_names, self._enzyme_rules = self._parse_enzyme(enzyme)
         self._toggle_nterm_m = toggle_nterm_m
+        self._cleavage_nterm_m, self._need_optional_nterm_m = self._parse_toggle_nterm_m(toggle_nterm_m)
         self._return_type = self._parse_return_type(return_type)
         self._extend_n = self._parse_extend_n(extend_n)
 
@@ -97,6 +100,8 @@ class TED(object):
         self._enzyme_names, self._enzyme_rules = self._parse_enzyme(enzyme)
 
     enzyme = property(get_enzyme, set_enzyme, doc='''Enzyme used for digestion''')
+    # TODO enzyme -> digestion rule, change enzyme as a param
+    digestion_rule = None
 
     @staticmethod
     def _parse_return_type(return_type: str):
@@ -118,7 +123,7 @@ class TED(object):
     def _parse_extend_n(extend_n: Union[bool, None, int]):
         if extend_n is True:
             extend_n = 7
-            print(f'The extend_n is set to \'True\' and a conventional sequence window 7 is assigned')
+            print(f'The `extend_n` is set to `True` and a conventional sequence window 7 is assigned')
         elif extend_n is None:
             extend_n = False
         elif extend_n is False:
@@ -145,30 +150,62 @@ class TED(object):
     If int: the n AAs before and after the seq will be returned.
     If True: the n will be set to 7 as a conventional sequence window''')
 
+    @staticmethod
+    def _parse_toggle_nterm_m(toggle_nterm_m):
+        if toggle_nterm_m == 2:
+            cleavage_nterm_m = True
+            need_optional_nterm_m = False
+        elif toggle_nterm_m == 1 or toggle_nterm_m is True:
+            cleavage_nterm_m = True
+            need_optional_nterm_m = True
+        elif toggle_nterm_m == 0 or toggle_nterm_m is False:
+            cleavage_nterm_m = False
+            need_optional_nterm_m = False
+        else:
+            raise ValueError('The input of `toggle_nterm_m` should be a value of `[2, 1, True, 0, False]`')
+        return cleavage_nterm_m, need_optional_nterm_m
+
+    def get_toggle_nterm_m(self):
+        return self._toggle_nterm_m
+
+    def set_toggle_nterm_m(self, toggle_nterm_m: Union[bool, int]):
+        self._cleavage_nterm_m, self._need_optional_nterm_m = self._parse_toggle_nterm_m(toggle_nterm_m)
+
+    toggle_nterm_m = property(get_toggle_nterm_m, set_toggle_nterm_m, doc='''If "M" is on sequence N-terminal, 
+set this param to `2` to remove this M and do digestion, 
+set this param to `1` or `True` to both remove and keep this M and do digestion, 
+set this param to `0` or `False` to do nothing on this "M" and do digestion''')
+
+#     def __str__(self):
+#         self.__dict__
+#         msg = '''\
+# Theoretical Enzyme Digestion
+#
+#         '''
+#         print('')
+
     def __call__(self, seq, add_info=None):
-        """
-        考虑到之后可能有多种酶同时加入的情况，以及需要前后 n 个 AA 的情况，这里改成对每个 seq 分别用所有 digestion rule 拿到可以切的位点，然后再去组装
-            这样可以简化正则的匹配规则同时减少处理步骤
-        """
         seq = seq.replace('\n', '').replace(' ', '')
         seq_len = len(seq)
-        if self._toggle_nterm_m == 2 and (seq[0] == 'M'):
-            seq = seq[1:]
 
-        cleavage_pos = rk.sum_list([[_.end() for _ in re.finditer(rule, seq)] for rule in self._enzyme_rules]) + [0, seq_len]
-        if (self._toggle_nterm_m is True or self._toggle_nterm_m == 1) and (seq[0] == 'M'):
-            cleavage_pos += [1]
-        cleavage_pos = sorted(set(cleavage_pos))
-
+        cleavage_pos = rk.sum_list([[_.end() for _ in re.finditer(rule, seq)] for rule in self._enzyme_rules])
+        if seq[0] == 'M' and self._cleavage_nterm_m:
+            cleavage_pos += [1, seq_len]
+        else:
+            cleavage_pos += [0, seq_len]
+        cleavage_pos = np.array(sorted(set(cleavage_pos)))
         cleavage_pos_num = len(cleavage_pos)
+
         pos_comb = []
-        for idx, pos in enumerate(cleavage_pos):
-            for mc in self._mc:
-                end_pos_idx = idx + mc + 1
-                if end_pos_idx >= cleavage_pos_num:
-                    continue
-                else:
-                    pos_comb.append((pos, cleavage_pos[end_pos_idx]))
+        for mc in self._mc:
+            idxs = np.arange(cleavage_pos_num)
+            _keep_idx_num = cleavage_pos_num - mc - 1
+            start_idxs = cleavage_pos[idxs[: _keep_idx_num]]
+            end_poss = cleavage_pos[np.roll(idxs, -(mc + 1))[: _keep_idx_num]]
+
+            if seq[0] == 'M' and self._need_optional_nterm_m and (len(end_poss) != 0):
+                pos_comb.append([0, end_poss[0]])
+            pos_comb.extend(np.stack((start_idxs, end_poss), axis=0).T.tolist())
 
         compliant_seq = []
         for start_idx, end_pos in pos_comb:
@@ -200,3 +237,7 @@ class TED(object):
                     one_data = one_data[0]
                 compliant_seq.append(one_data)
         return compliant_seq
+
+
+def count_mc(pep: str, cleav_site=None):
+    return len(re.findall('[KR](?<!$)', pep))

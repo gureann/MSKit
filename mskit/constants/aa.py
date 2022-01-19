@@ -38,7 +38,7 @@ class AA:
         'Trp': 'W',
         'Tyr': 'Y',
     }
-    AA_1to3 = dict(zip(AA_3to1.values(), AA_3to1.keys()))
+    AA_1to3 = {v: k for k, v in AA_3to1.items()}
     AAList_20 = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L',
                  'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y']
 
@@ -127,14 +127,15 @@ P	-0.124	−0.068	−0.062	−0.054	−0.057	−0.056	0.049\
 '''
 
     def get_rc(self, chro_type='RPLC'):
-        import io
-        import pandas as pd
         if chro_type == 'RPLC':
             data = self.Rc_RPLC
         elif chro_type == 'SCX':
             data = self.Rc_SCX
         else:
             raise
+
+        import io
+        import pandas as pd
         return pd.read_csv(io.StringIO(data), sep='\t')
 
 

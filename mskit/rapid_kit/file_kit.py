@@ -1,6 +1,7 @@
 import io
 import os
 import pickle
+import shutil
 import time
 import typing
 
@@ -101,6 +102,59 @@ def split_file_block(
     return pos_list
 
 
+def recursive_copy(original, target, ignored_items=None, verbose=True, exist_ok=True):
+    if ignored_items is None:
+        ignored_items = []
+
+    os.makedirs(target, exist_ok=exist_ok)
+    curr_items = os.listdir(original)
+    for item in curr_items:
+        if item in ignored_items:
+            continue
+        original_item_path = os.path.join(original, item)
+        target_item_path = os.path.join(target, item)
+        if os.path.isdir(original_item_path):
+            recursive_copy(original_item_path, target_item_path, ignored_items=ignored_items, verbose=verbose)
+        elif os.path.isfile(original_item_path):
+            if verbose:
+                print(f'copying {item} from {original_item_path} to {target_item_path}')
+            shutil.copy(original_item_path, target_item_path)
+        else:
+            raise
+    return 0
+
+
+def get_workspace(level=0):
+    curr_dir = os.path.abspath('.')
+    work_dir = curr_dir
+    for i in range(level):
+        work_dir = os.path.dirname(work_dir)
+    return work_dir
+
+
+def list_dir_with_identification(
+        dirname,
+        identification=None,
+        position='end',
+        regex=False,
+        full_path=False
+):
+    dir_content_list = os.listdir(dirname)
+    if identification:
+        if position == 'end':
+            dir_content_list = [
+                _ for _ in dir_content_list if _.endswith(identification)]
+        elif position == 'in':
+            dir_content_list = [
+                _ for _ in dir_content_list if identification in _]
+        else:
+            raise NameError('parameter position is illegal')
+    if not full_path:
+        return dir_content_list
+    else:
+        return [os.path.join(dirname, _) for _ in dir_content_list]
+
+
 def file_prefix_time(with_dash=False):
     curr_time = time.strftime('%Y%m%d', time.localtime())
     prefix = curr_time + '-' if with_dash else curr_time
@@ -136,6 +190,10 @@ def flatten_two_headers_file(
         method=None
 ) -> pd.DataFrame:
     """
+    :param file: path of file, or file text in string format, or list of lines
+    :param header_num:
+    :param sep:
+    :param method:
 
     method: stack headers or cross-insert or lower-first
 
@@ -234,6 +292,7 @@ def check_path(
         raise_error: bool = False,
         verbose: bool = False
 ):
+    # TODO this file, or this dir
     if shown_path_right_idx is None:
         shown_filepath = path
     elif isinstance(shown_path_right_idx, int):
@@ -256,7 +315,7 @@ def check_path(
         print(f'{os.path.exists(path)} - {shown_filepath}')
 
 
-def check_path_in_dict(path_dict: dict, shown_filename_right_idx: int = None):
+def check_path_in_dict(path_dict: dict, shown_filename_right_idx: int = 1):
     # TODO 显示的文件名称可以是多个 idx 对应 substring 的组合
     """
     :param path_dict:
@@ -264,16 +323,8 @@ def check_path_in_dict(path_dict: dict, shown_filename_right_idx: int = None):
     """
     print(f'Total {len(path_dict)} files')
     for name, path in path_dict.items():
-        if shown_filename_right_idx is None or (isinstance(shown_filename_right_idx, int) and shown_filename_right_idx == 0):
-            shown_filename = path
-        elif isinstance(shown_filename_right_idx, int) and shown_filename_right_idx > 0:
-            used_path = path
-            for _ in range(shown_filename_right_idx):
-                used_path = os.path.dirname(used_path)
-            shown_filename = os.path.basename(used_path)
-        else:
-            raise ValueError(f'Param `shown_filename_right_idx` must be None or any positive integer. Now {shown_filename_right_idx}')
-        print(f'{os.path.exists(path)} - {name}: {os.path.basename(shown_filename)}')
+        check_path(path=path, name=name, shown_path_right_idx=shown_filename_right_idx,
+                   show_all_after_idx=True, raise_error=False, verbose=False)
 
 
 def check_input_df(data, *args) -> pd.DataFrame:
@@ -287,11 +338,15 @@ def check_input_df(data, *args) -> pd.DataFrame:
     return df
 
 
-def fill_path_dict(path_to_fill: str, fill_string: dict, exist_path_dict: dict = None):
+def fill_path_dict(path_to_fill: str, fill_string: dict, exist_path_dict: dict = None, max_fill_padding=None):
+    # TODO checking
     if exist_path_dict is None:
         path_dict = dict()
     else:
         path_dict = exist_path_dict.copy()
+
+    if max_fill_padding is not None:
+        explicit_fill_num = path_to_fill.count('{}')
 
     for k, file_name in fill_string.items():
         file_name = [file_name] if isinstance(file_name, str) else file_name

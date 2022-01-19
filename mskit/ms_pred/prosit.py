@@ -1,6 +1,6 @@
 import os
 
-from mskit.inherited_builtins import NonOverwriteDict
+from mskit.utils import NonOverwriteDict
 
 
 def read_prosit_fragment_result(prosit_result):

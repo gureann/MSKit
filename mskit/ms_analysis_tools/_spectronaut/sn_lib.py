@@ -2,9 +2,10 @@ import os
 import re
 from collections import Counter
 
+import numpy as np
 import pandas as pd
-import prettytable
 
+from mskit.ms_pred.deep_phospho import sn_modpep_to_intseq
 from .sn_constant import *
 from .sn_utils import *
 
@@ -153,6 +154,8 @@ class SpectronautLibrary(object):
         pass
 
     def summary(self, sum_list=None):
+        import prettytable
+
         summary_funcs = {
             'FragmentLossType': self.fragment_loss_counts,
         }

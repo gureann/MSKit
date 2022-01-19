@@ -1,0 +1,10 @@
+// github.css from typora style folder
+
+
+foreach ($md in (dir . -name | where {$_ -match '.md$'})){
+pandoc `
+--pdf-engine="wkhtmltopdf.exe" `
+-t html `
+--css ./github.css `
+$md `
+-o (Join-Path $pwd "PDF" ($md -replace '.md','.pdf'))}

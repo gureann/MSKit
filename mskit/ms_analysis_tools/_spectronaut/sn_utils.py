@@ -11,8 +11,6 @@ from .sn_constant import SNLibraryTitle
 __all__ = [
     'filter_inten_neutral_loss_pos',
     'sn_modpep_to_unimodpep',
-    'sn_modpep_to_intseq',
-    'intseq_to_sn_modpep',
     'get_lib_prec',
     'select_target_run_df',
     'get_library_info',
@@ -76,37 +74,6 @@ def sn_modpep_to_unimodpep(x):
         '[Phospho (STY)]': '(UniMod:21)',
     }.items():
         x = x.replace(sn_mod, unimod)
-    return x
-
-
-def sn_modpep_to_intseq(x):
-    x = x.replace('_', '')
-    if '[Acetyl (Protein N-term)]' in x:
-        x = x.replace('[Acetyl (Protein N-term)]', '')
-        x = '*' + x
-    else:
-        x = '@' + x
-    x = x.replace('C[Carbamidomethyl (C)]', 'C')
-    x = x.replace('M[Oxidation (M)]', '1')
-    x = x.replace('S[Phospho (STY)]', '2')
-    x = x.replace('T[Phospho (STY)]', '3')
-    x = x.replace('Y[Phospho (STY)]', '4')
-    return x
-
-
-def intseq_to_sn_modpep(x):
-    if x[0] == '*':
-        x = '[Acetyl (Protein N-term)]' + x[1:]
-    elif x[0] == '@':
-        x = x[1:]
-    else:
-        pass
-    x = x.replace('C', 'C[Carbamidomethyl (C)]')
-    x = x.replace('1', 'M[Oxidation (M)]')
-    x = x.replace('2', 'S[Phospho (STY)]')
-    x = x.replace('3', 'T[Phospho (STY)]')
-    x = x.replace('4', 'Y[Phospho (STY)]')
-    x = f'_{x}_'
     return x
 
 

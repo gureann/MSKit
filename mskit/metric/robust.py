@@ -18,7 +18,9 @@ def cv(value_array: np.ndarray, min_quant_value_num=3, std_ddof=1, make_percenta
     :param return_iqr: Whether to return IQR of calulated CVs. If True, a tuple like (cvs, iqr) will be returned, otherwise cvs only. Default False
     """
     if len(value_array.shape) != 2:
-        raise ValueError(f'Calc CV would expects a two-dim array with sample as rows and replicates as cols. Current input array has {len(value_array.shape)} dim')
+        raise ValueError(f'Expect a two-dim array to calc CV with sample as rows and replicates as cols. '
+                         f'Current input array has shape {value_array.shape} with {len(value_array.shape)} dim')
+    value_array = np.asarray(value_array)
     sample_num, rep_num = value_array.shape
     if min_quant_value_num > rep_num:
         min_quant_value_num = rep_num

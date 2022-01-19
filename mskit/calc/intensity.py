@@ -1,5 +1,10 @@
 import numpy as np
 
+__all__ = [
+    'normalize_intensity',
+    'keep_top_n_inten'
+]
+
 
 def normalize_intensity(inten, max_num=None, exclude_low_inten=None, no_drop=False):
     """

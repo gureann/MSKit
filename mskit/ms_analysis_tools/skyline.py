@@ -5,6 +5,7 @@ import pandas as pd
 import scipy.stats
 
 from ._skyline import skyline_constants
+from ._skyline import blib
 
 
 def reformat_skyline_unimodpep(x):
