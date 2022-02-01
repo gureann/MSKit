@@ -1,7 +1,56 @@
 import copy
+import random
+import typing
 
 import numpy as np
 import pandas as pd
+
+
+def split_nparts(
+        data: typing.Union[list, tuple, np.ndarray],
+        ratios: typing.Union[str, list, tuple, np.ndarray],
+        ratio_sep=',',
+        assign_remainder='first_n',
+        seed=None,
+) -> list:
+    if isinstance(ratios, str):
+        ratios = [float(_) for _ in ratios.split(ratio_sep)]
+    if len(ratios) == 1:
+        return data
+
+    n_data = len(data)
+    if n_data < len(ratios):
+        print()
+        # or warning or raise
+    ratios = np.asarray(ratios)
+    split_n_data = (ratios / np.sum(ratios) * n_data).astype(int)
+    if assign_remainder == 'first':
+        split_n_data[0] += (n_data - np.sum(split_n_data))
+    elif assign_remainder == 'last':
+        split_n_data[-1] += (n_data - np.sum(split_n_data))
+    elif assign_remainder == 'first_n':
+        split_n_data[:(n_data - np.sum(split_n_data))] += 1
+    elif assign_remainder == 'last_n':
+        split_n_data[-(n_data - np.sum(split_n_data)):] += 1
+    elif assign_remainder == 'no':
+        pass
+    else:
+        raise ValueError('')
+
+    cum_split_n_data = np.cumsum(split_n_data)
+
+    if isinstance(seed, random.Random):
+        r = seed
+    else:
+        r = random.Random(seed)
+
+    shuffled_data = copy.deepcopy(data)
+    r.shuffle(shuffled_data)
+
+    split_data = [shuffled_data[:cum_split_n_data[0]]]
+    for idx, n in enumerate(cum_split_n_data[1:], 1):
+        split_data.append(shuffled_data[cum_split_n_data[idx - 1]: n])
+    return split_data
 
 
 def sum_list(nested_list):
@@ -95,12 +144,6 @@ def split_two_set(set1, set2):
     set1_unique = set1 - set2
     set2_unique = set2 - set1
     return set1_unique, set2_unique, overlapped
-
-
-def str_mod_to_list(mod):
-    mod_list = [each_mod.split(',') for each_mod in mod.strip(';').split(';')]
-    mod_list = [(int(_[0]), _[1]) for _ in mod_list]
-    return mod_list
 
 
 def check_value_len_of_dict(checked_dict: dict, thousands_separator=True, sort_keys=False, ):

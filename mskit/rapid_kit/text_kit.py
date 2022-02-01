@@ -3,8 +3,6 @@ import re
 import string
 import typing
 
-from .data_struc_kit import str_mod_to_list
-
 
 def get_random_string(
         symbols: typing.Union[list, tuple] = string.ascii_letters,
@@ -92,14 +90,19 @@ def find_substring(
         a list of positions of substrings (the 1-indexed)
         a list of substrings
     Example:
-        substring_finder('AM(ox)M(Oxidation (M))C(Carbamidomethyl (C))DEEHC(Carb)K', '(', ')')
+        find_substring('[Acetyl (N-term)]M[Oxidation (M)][Acetyl]VQISPDS[Phospho (STY)]GGLPER[+n][+m]', '[', ']', keep_start_end_char=False)
+            ('MVQISPDSGGLPER',
+             [0, 1, 1, 8, 14, 14],
+             ['Acetyl (N-term)', 'Oxidation (M)', 'Acetyl', 'Phospho (STY)', '+n', '+m'])
+        find_substring('AM(ox)M(Oxidation (M))C(Carbamidomethyl (C))DEEHC(Carb)K', '(', ')')
             ('AMMCDEEHCK',
             [2, 3, 4, 9],
             ['(ox)', '(Oxidation (M))', '(Carbamidomethyl (C))', '(Carb)'])
-        substring_finder('AM[ox]M[Oxidation (M)]C[Carbamidomethyl (C)]DEEHC[Carb]K', '[', ']')
+        find_substring('AM[ox]M[Oxidation (M)]C[Carbamidomethyl (C)]DEEHC[Carb]K', '[', ']')
             ('AMMCDEEHCK',
             [2, 3, 4, 9],
             ['[ox]', '[Oxidation (M)]', '[Carbamidomethyl (C)]', '[Carb]'])
+
     TODO 再返回一个对应位点氨基酸的 list  注意 N 和 C 端
     TODO substring_trans_dict
     """
@@ -113,15 +116,19 @@ def find_substring(
     sub_str = ''
     for i, char in enumerate(s):
         if char == start_char:
-            sub_str += char
+            if keep_start_end_char:
+                sub_str += char
             substring_start = True
             start_num += 1
         elif char == end_char:
-            sub_str += char
+            if keep_start_end_char:
+                sub_str += char
             end_num += 1
             if start_num == end_num:
                 substrings.append(sub_str)
                 sub_total_len += len(sub_str)
+                if not keep_start_end_char:
+                    sub_total_len += 2
                 pos.append(i - sub_total_len + 1)
                 start_num = 0
                 end_num = 0
@@ -188,11 +195,33 @@ def split_fragment_name(fragment_name):
     return frag_type, int(frag_num), int(frag_charge), frag_loss
 
 
-def split_prec(prec: str, keep_underline=False):
-    modpep, charge = prec.split('.')
-    if not keep_underline:
+def split_prec(
+        prec: str,
+        keep_underscore: bool = False
+) -> typing.Tuple[str, int]:
+    """
+    Can not cover all cases, like
+        OpenSwath will have . for n-term or c-term mod, while directly add charge to the last char of pep to get prec
+        Spectronaut will have no . in pep text, while _ is always at the first and last positions
+    Prec will have format like pep_charge, or pep.charge, or pepcharge, and can not be disdigushed
+    This func only cover non-dot pep format. Means . is not used to indicate the n/c-term
+    """
+    if '.' in prec:
+        if (n := len(l := prec.split('.'))) == 2:
+            modpep, charge = l
+        else:
+            raise ValueError(f'Precursor has `.` in text. Expect having format like pep.charge, but {n} `.` were in text')
+    else:
+        modpep, charge = prec[:-1], prec[-1]
+
+    if charge.isdigit():
+        charge = int(charge)
+    else:
+        raise ValueError(f'Precursor charge is expected as an integer. Now {charge} in precursor {prec}')
+
+    if not keep_underscore:
         modpep = modpep.replace('_', '')
-    return modpep, int(charge)
+    return modpep, charge
 
 
 def assemble_prec(modpep, charge):
@@ -219,6 +248,12 @@ def split_mod(modpep, mod_ident='bracket'):
         mod_len += _end - _start
     stripped_pep = re.sub(re_sub_pattern, '', modpep)
     return stripped_pep, mod
+
+
+def str_mod_to_list(mod):
+    mod_list = [each_mod.split(',') for each_mod in mod.strip(';').split(';')]
+    mod_list = [(int(_[0]), _[1]) for _ in mod_list]
+    return mod_list
 
 
 def add_mod(pep, mod, mod_processor):

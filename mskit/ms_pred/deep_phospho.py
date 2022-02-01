@@ -4,6 +4,36 @@ IntMod2General = {
 }
 
 
+def unimod_modpep_to_intseq(x):
+    if '(UniMod:1)' in x:
+        x = x.replace('(UniMod:1)', '')
+        x = '*' + x
+    else:
+        x = '@' + x
+    x = x.replace('.', '')
+    x = x.replace('C(UniMod:4)', 'C')
+    x = x.replace('M(UniMod:35)', '1')
+    x = x.replace('S(UniMod:21)', '2')
+    x = x.replace('T(UniMod:21)', '3')
+    x = x.replace('Y(UniMod:21)', '4')
+    return x
+
+
+def intseq_to_unimod_modpep(x):
+    if x[0] == '*':
+        x = '(UniMod:1)' + x[1:]
+    elif x[0] == '@':
+        x = x[1:]
+    else:
+        pass
+    x = x.replace('C', 'C(UniMod:4)')
+    x = x.replace('1', 'M(UniMod:35)')
+    x = x.replace('2', 'S(UniMod:21)')
+    x = x.replace('3', 'T(UniMod:21)')
+    x = x.replace('4', 'Y(UniMod:21)')
+    return x
+
+
 def sn_modpep_to_intseq(x):
     x = x.replace('_', '')
     if '[Acetyl (Protein N-term)]' in x:

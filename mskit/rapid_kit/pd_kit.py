@@ -6,7 +6,7 @@ import typing
 import numpy as np
 import pandas as pd
 
-from .text_kit import substring_finder
+from .text_kit import find_substring
 
 
 def dask_series_map(
@@ -192,8 +192,8 @@ def filter_prob(
     if f'(' not in prob_col_content:
         return True
 
-    strippep, modpos, mods = substring_finder(find_col_content.replace('_', ''), '(', ')')
-    strippep, prob_pos, probs = substring_finder(prob_col_content.replace('_', ''), '(', ')')
+    strippep, modpos, mods = find_substring(find_col_content.replace('_', ''), '(', ')')
+    strippep, prob_pos, probs = find_substring(prob_col_content.replace('_', ''), '(', ')')
 
     for pos in prob_pos:
         prob_idx = prob_pos.index(pos)

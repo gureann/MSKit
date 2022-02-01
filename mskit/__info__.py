@@ -1,7 +1,7 @@
 
 _MAJOR_VERSION = 0
 _MINOR_VERSION = 4
-_MICRO_VERSION = 3
+_MICRO_VERSION = 5
 # _RELEASE_DATE = '.'
 # _RELEASE_TYPE = 'alpha'
 __version__ = '.'.join(

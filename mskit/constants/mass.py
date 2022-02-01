@@ -35,8 +35,8 @@ class CompoundMass:
 
 class Mass:
     ResMass = {'A': 71.0371138,
-               'C_': 103.00918,
-               'C': 160.0306481,
+               'C': 103.00918,
+               'C+': 160.0306481,
                'D': 115.0269429,
                'E': 129.042593,
                'F': 147.0684139,
@@ -60,18 +60,58 @@ class Mass:
     ProtonMass = 1.0072766  # H+
     IsotopeMass = 1.003
 
-    ModMass = {'Carbamidomethyl': 57.0214637,
-               'C[Carbamidomethyl]': 57.0214637,
-               'Oxidation': ElementMass.Mono['O'],
-               'M[Oxidation]': ElementMass.Mono['O'],
-               'Phospho': CompoundMass.CompoundMass['HPO3'],
-               'Acetyl': CompoundMass.CompoundMass['C2H2O'],
-               'TMT': 229.1629,
-               '1': 147.0353992,  # M[16]
-               '2': 167.03203,  # S[80]
-               '3': 181.04768,  # T[80]
-               '4': 243.06333,  # Y[80]
-               }
+    ModMass = {
+        'Carbamidomethyl': 57.0214637,
+        'Carbamidomethyl (C)': 57.0214637,
+        '[Carbamidomethyl (C)]': 57.0214637,
+        '[57]': 57.0214637,
+        '[+57]': 57.0214637,
+        '[car]': 57.0214637,
+        '(car)': 57.0214637,
+        '(ca)': 57.0214637,
+        'UniMod:4': 57.0214637,
+        '(UniMod:4)': 57.0214637,
+
+        'Oxidation': ElementMass.Mono['O'],
+        'Oxidation (M)': ElementMass.Mono['O'],
+        '[Oxidation (M)]': ElementMass.Mono['O'],
+        '[16]': ElementMass.Mono['O'],
+        '[+16]': ElementMass.Mono['O'],
+        '[ox]': ElementMass.Mono['O'],
+        '(ox)': ElementMass.Mono['O'],
+        'UniMod:35': ElementMass.Mono['O'],
+        '(UniMod:35)': ElementMass.Mono['O'],
+
+        'Phospho': CompoundMass.CompoundMass['HPO3'],
+        'Phosphorylation': CompoundMass.CompoundMass['HPO3'],
+        'Phospho (STY)': CompoundMass.CompoundMass['HPO3'],
+        '[Phospho (STY)]': CompoundMass.CompoundMass['HPO3'],
+        '[80]': CompoundMass.CompoundMass['HPO3'],
+        '[+80]': CompoundMass.CompoundMass['HPO3'],
+        '[ph]': CompoundMass.CompoundMass['HPO3'],
+        '(ph)': CompoundMass.CompoundMass['HPO3'],
+        'UniMod:21': CompoundMass.CompoundMass['HPO3'],
+        '(UniMod:21)': CompoundMass.CompoundMass['HPO3'],
+
+        'Acetyl': CompoundMass.CompoundMass['C2H2O'],
+        'Acetyl (N-term)': CompoundMass.CompoundMass['C2H2O'],
+        'Acetyl (prot N-term)': CompoundMass.CompoundMass['C2H2O'],
+        'Acetyl (Prot N-term)': CompoundMass.CompoundMass['C2H2O'],
+        'Acetyl (Protein N-term)': CompoundMass.CompoundMass['C2H2O'],
+        '[Acetyl (N-term)]': CompoundMass.CompoundMass['C2H2O'],
+        '[42]': CompoundMass.CompoundMass['C2H2O'],
+        '[+42]': CompoundMass.CompoundMass['C2H2O'],
+        '[ac]': CompoundMass.CompoundMass['C2H2O'],
+        '(ac)': CompoundMass.CompoundMass['C2H2O'],
+        'UniMod:1': CompoundMass.CompoundMass['C2H2O'],
+        '(UniMod:1)': CompoundMass.CompoundMass['C2H2O'],
+
+        'TMT': 229.1629,
+        '1': 147.0353992,  # M[16]
+        '2': 167.03203,  # S[80]
+        '3': 181.04768,  # T[80]
+        '4': 243.06333,  # Y[80]
+    }
 
     ModLossMass = {
         'Noloss': 0.,

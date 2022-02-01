@@ -25,13 +25,18 @@ class TED(object):
         """
         Theoretical Enzyme Digestion -> TED
 
-        :param miss_cleavage: this can be int or tuple, while it will be converted into tuple when use
+        :param miss_cleavage: int or tuple
+            This can be int or tuple, while it will be converted into tuple when use
         :param min_len:
         :param max_len:
-        :param enzyme: Enzyme name or a regular expression to define the digestion rules. Currently supported enzymes are trypsin and lysC
-        :param toggle_nterm_m: If 'M' on sequence N-terminal, remove this M and go continue (2), both remove and keep this M and go continue (1 or True), nothing to do (0 or False)
-        :param return_type: 'seq' or 'site_seq'
-        :param extend_n: False or None or int. Nothing to do with the default False, and the n AAs before and after the seq will be returned if int assigned
+        :param enzyme:
+            Enzyme name or a regular expression to define the digestion rules. Currently supported enzymes are Trypsin, Trypsin/P, lysC, and LysC/P
+        :param toggle_nterm_m:
+            If 'M' on sequence N-terminal, remove this M and go continue (2), or both remove and keep this M and go continue (1 or True), or nothing to do (0 or False)
+        :param return_type:
+            'seq' or 'site_seq'
+        :param extend_n: False or None or int.
+            Nothing to do with the default False, and the n AAs before and after the seq will be returned if int assigned
 
         TODO exclude some unusual aa if param assigned
         """

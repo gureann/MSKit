@@ -22,7 +22,7 @@ from .aa import AA
 
 class Enzyme:
     """
-    The RE_AllEnd indicates the all possible end pos of the cleavaged peptides, in which the pos of pep end will also be concluded
+    The RE_AllEnd indicates all possible ending positions of the ongoing cleavaged peptides, in which the pos of pep end will also be concluded
     """
     Enzymes = {
         'Trypsin': {

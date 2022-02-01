@@ -7,7 +7,7 @@ import pandas as pd
 
 from mskit.ms_pred.deep_phospho import sn_modpep_to_intseq
 from .sn_constant import *
-from .sn_utils import *
+from .utils import *
 
 try:
     from sklearn.model_selection import train_test_split

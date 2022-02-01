@@ -22,10 +22,13 @@ __all__ = [
 ]
 
 
-def filter_inten_neutral_loss_pos(modpep, intens,
-                                  exclude_mod_in_pep='[Phospho (STY)]',
-                                  exclude_res=('S', 'T'),
-                                  exclude_frag_losstype='H3PO4'):
+def filter_inten_neutral_loss_pos(
+        modpep,
+        intens,
+        exclude_mod_in_pep='[Phospho (STY)]',
+        exclude_res=('S', 'T'),
+        exclude_frag_losstype='H3PO4'
+):
     """
     TODO 这里只是对最小和最大可以出现磷酸根丢失的位点进行 filter，如果需要进一步对应磷酸化修饰数量，应该指定 b/y 之后建一个每个位置的数量 list
     TODO 如果目的不止是为了筛选正确的丢失位点，则最好直接产生一条肽段所有可能的 fragments
@@ -189,7 +192,7 @@ def write_lib(output_path, inten_dict: dict, rt_dict: dict, seq2protein_dict=Non
         _out.write(lib_title + '\n')
 
         for each_prec, frag_dict in inten_dict.items():
-            modpep, charge = rapid_kit.split_prec(each_prec, keep_underline=True)
+            modpep, charge = rapid_kit.split_prec(each_prec, keep_underscore=True)
             if modpep in rt_dict:
                 irt = rt_dict[modpep]
             else:
@@ -205,7 +208,7 @@ def write_lib(output_path, inten_dict: dict, rt_dict: dict, seq2protein_dict=Non
             for frag_name, frag_inten in frag_dict.items():
                 frag_type, frag_num, frag_charge, frag_loss = rapid_kit.split_fragment_name(frag_name)
                 frag_loss = frag_loss if frag_loss else 'noloss'
-                fragment_mz = calc.calc_fragment_mz(stripped_pep, frag_type, frag_num, frag_charge, mod=mod)
+                fragment_mz = calc.calc_fragment_mz_old(stripped_pep, frag_type, frag_num, frag_charge, mod=mod)
                 one_row_list = [charge, modpep, stripped_pep, irt,
                                 modpep, prec_mz, frag_loss, frag_num,
                                 frag_type, frag_charge, fragment_mz, frag_inten]

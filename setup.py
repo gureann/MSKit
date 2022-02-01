@@ -20,7 +20,7 @@ EMAIL = __info__.__email__
 AUTHOR = __info__.__author__
 VERSION = __info__.__version__
 LICENSE = __info__.__license__
-REQUIRES_PYTHON = '>=3.7.0'
+REQUIRES_PYTHON = '>=3.9.0'
 
 REQUIRED = [
     'numpy', 'pandas', 'scipy',
@@ -39,6 +39,7 @@ EXTRAS = {
     'tensorflow': ['tensorflow-gpu'],
     'GUI': ['wxpython'],
 }
+EXTRAS['ALL'] = sum(list(EXTRAS.values()), [])
 
 PACKAGEDATA = {
     'unimod': ['package_data/unimod.xml'],
@@ -51,11 +52,8 @@ classifiers = [
     'Development Status :: 2 - Pre-Alpha',
 
     'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.7',
-    'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
-    'Programming Language :: Python :: Implementation :: CPython',
 
     'Topic :: Scientific/Engineering :: Bio-Informatics',
     'Topic :: Scientific/Engineering :: Visualization',
