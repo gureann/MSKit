@@ -1,15 +1,16 @@
 import numpy as np
 import pandas as pd
 
-from mskit.rapid_kit import substring_finder
-from mskit.ms_pred.deep_phospho import sn_modpep_to_intseq
+from mskit import rapid_kit as rk
+from mskit.ms_pred.deepphospho import sn_modpep_to_intseq
 
 
-def init_phos_analysis(df,
-                       protein_col='PG.ProteinGroups',
-                       modpep_col='EG.ModifiedPeptide',
-                       prec_charge_col='FG.Charge',
-                       ):
+def init_phos_analysis(
+        df,
+        protein_col='PG.ProteinGroups',
+        modpep_col='EG.ModifiedPeptide',
+        prec_charge_col='FG.Charge',
+):
     df['FirstProtein'] = df[protein_col].apply(lambda x: x.split(';')[0])
     df['Precursor'] = df[modpep_col] + '.' + df[prec_charge_col].astype(int).astype(str)
     df['IntPep'] = df[modpep_col].apply(sn_modpep_to_intseq)
@@ -22,15 +23,17 @@ def init_phos_analysis(df,
     return df
 
 
-def add_phossite_in_pep(x, modpep_col='EG.ModifiedPeptide',
-                        prob_thres=None,
-                        prob_col='EG.PTMProbabilities [Phospho (STY)]',
-                        modpos_col='EG.PTMPositions [Phospho (STY)]',
-                        required_mod='[Phospho (STY)]'):
+def add_phossite_in_pep(
+        x, modpep_col='EG.ModifiedPeptide',
+        prob_thres=None,
+        prob_col='EG.PTMProbabilities [Phospho (STY)]',
+        modpos_col='EG.PTMPositions [Phospho (STY)]',
+        required_mod='[Phospho (STY)]'
+):
     if not x['IsPhospep']:
         return np.nan
 
-    strippep, modpos, mods = substring_finder(x[modpep_col].replace('_', ''))
+    strippep, modpos, mods = rk.find_substring(x[modpep_col].replace('_', ''))
     required_mod_pos = [pos for pos, mod in zip(modpos, mods) if mod == required_mod]
 
     if prob_thres:
@@ -52,7 +55,9 @@ def add_phossite_in_pep(x, modpep_col='EG.ModifiedPeptide',
         return 'PepFilter'
 
 
-def add_phossite_in_prot(x, ):
+def add_phossite_in_prot(
+        x,
+):
     if pd.isna(x['PepPhosPos']):
         return np.nan
 

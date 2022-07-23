@@ -71,6 +71,7 @@ MaxQuant_EviDtype = {
     'Mod. peptide ID': 'object',
     'MS/MS IDs': 'object',
     'Best MS/MS': 'object',
+    'Carbamidomethyl (C) site IDs': 'object',
     'Oxidation (M) site IDs': 'object',
     'Taxonomy IDs': 'object',
 }

@@ -19,7 +19,7 @@ def get_sqlite_cursor(
         con = sqlite3.connect(db)
         return con, con.cursor()
     else:
-        raise ValueError(f'Parameter `db` should be a connection, or a cursor, or the path of a sqlite database file. Now {type(db)}')
+        raise ValueError(f'Parameter `db` should be a connection, or a cursor, or the path of a sqlite database file. Now {type(db)=} - {db}')
 
 
 def get_sqlite_table_title(
@@ -63,7 +63,7 @@ def load_all_sqlite_tables(
         close_db: bool = False
 ) -> (sqlite3.Connection, typing.Dict[str, pd.DataFrame]):
     con, df = load_sqlite_master_table(db, only_keep_table_info=True)
-    tables = {table_name: load_one_sqlite_table(con, table_name=table_name, table_title=None)[0] for table_name in df['name'].values}
+    tables = {table_name: load_one_sqlite_table(con, table_name=table_name, table_title=None)[1] for table_name in df['name'].values}
     if close_db:
         con.close()
     return con, tables

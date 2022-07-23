@@ -4,7 +4,7 @@ from collections import defaultdict
 
 import pandas as pd
 
-from mskit import rapid_kit
+from mskit import rapid_kit as rk
 
 
 def intprec_to_pdeep_test(intprec_list):
@@ -254,7 +254,7 @@ def extract_pdeep_mod(mod_pep, mod_ident='bracket', mod_trans=True):
     input: '_C[Carbamidomethyl (C)]DM[Oxidation (M)]EDER_'
     output: 'CDMEDER', '1,Carbamidomethyl[C];3,Oxidation[M];'
     """
-    stripped_pep, mod = rapid_kit.split_mod(modpep=mod_pep, mod_ident=mod_ident)
+    stripped_pep, mod = rk.split_mod(modpep=mod_pep, mod_ident=mod_ident)
     if mod_trans:
         mod = trans_sn_mod(mod)
     return stripped_pep, mod
@@ -276,7 +276,7 @@ def restore_pdeep_mod_site(stripped_pep, mod_content, mod_processor):
     EXAMPLE: restore_pdeep_mod_site('MPALAIMGLSLAAFLELGMGASLCLSQQFK', '24,Carbamidomethyl[C];')
     -> 'MPALAIMGLSLAAFLELGMGASLC[Carbamidomethyl (C)]LSQQFK'
     """
-    return rapid_kit.add_mod(stripped_pep, mod_content, mod_processor)
+    return rk.add_mod(stripped_pep, mod_content, mod_processor)
 
 
 def pdeep_input(output_path, prec_list):
@@ -284,7 +284,7 @@ def pdeep_input(output_path, prec_list):
         pred_title = ['peptide', 'modification', 'charge']
         out_file.write('\t'.join(pred_title) + '\n')
         for _prec in prec_list:
-            modpep, charge = rapid_kit.split_prec(_prec)
+            modpep, charge = rk.split_prec(_prec)
             strip_pep, mod = extract_pdeep_mod(modpep)
             out_file.write(f'{strip_pep}\t{mod}\t{charge}\n')
 
@@ -304,7 +304,7 @@ def pdeep_trainset(output_path, prec_inten_dict):
 
 def plabel_one_row_dict(prec, inten_dict: dict):
     plabel_row_dict = defaultdict(str)
-    modpep, charge = rapid_kit.split_prec(prec)
+    modpep, charge = rk.split_prec(prec)
     strip_pep, mod = extract_pdeep_mod(modpep, mod_ident='bracket', mod_trans=True)
     if not mod:
         return None
@@ -312,7 +312,7 @@ def plabel_one_row_dict(prec, inten_dict: dict):
     plabel_row_dict['peptide'] = strip_pep
     plabel_row_dict['modinfo'] = mod
     for frag, inten in inten_dict.items():
-        frag_type, frag_num, frag_charge, frag_loss = rapid_kit.split_fragment_name(frag)
+        frag_type, frag_num, frag_charge, frag_loss = rk.split_fragment_name(frag)
         if frag_loss == 'noloss':
             plabel_type = frag_type
             plabel_frag = f'{frag_type}{frag_num}+{frag_charge}'

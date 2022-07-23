@@ -9,9 +9,10 @@ import pandas as pd
 def split_nparts(
         data: typing.Union[list, tuple, np.ndarray],
         ratios: typing.Union[str, list, tuple, np.ndarray],
-        ratio_sep=',',
-        assign_remainder='first_n',
-        seed=None,
+        ratio_sep: str = ',',
+        assign_remainder: str = 'first_n',
+        shuffle: bool = True,
+        seed: typing.Union[int, random.Random] = None,
 ) -> list:
     if isinstance(ratios, str):
         ratios = [float(_) for _ in ratios.split(ratio_sep)]
@@ -44,12 +45,13 @@ def split_nparts(
     else:
         r = random.Random(seed)
 
-    shuffled_data = copy.deepcopy(data)
-    r.shuffle(shuffled_data)
+    if shuffle:
+        data = copy.deepcopy(data)
+        r.shuffle(data)
 
-    split_data = [shuffled_data[:cum_split_n_data[0]]]
+    split_data = [data[:cum_split_n_data[0]]]
     for idx, n in enumerate(cum_split_n_data[1:], 1):
-        split_data.append(shuffled_data[cum_split_n_data[idx - 1]: n])
+        split_data.append(data[cum_split_n_data[idx - 1]: n])
     return split_data
 
 

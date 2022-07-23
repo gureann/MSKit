@@ -11,4 +11,6 @@ from . import rapid_kit
 from . import sequence
 from . import stats
 
+post_analysis = ms_analysis_tools
+
 from .utils import *

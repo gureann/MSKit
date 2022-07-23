@@ -4,6 +4,7 @@ from . import easypqp
 from . import maxquant
 from . import openswath
 from . import pfind
+from . import philosopher
 from . import skyline
 from . import spectronaut
 from . import xwalk

@@ -1,6 +1,6 @@
 import re
 
-from mskit.rapid_kit import substring_finder
+from mskit import rapid_kit as rk
 
 
 def extract_mod_for_deepms2(mod_pep, mod_trans_dict: dict):
@@ -14,7 +14,7 @@ def extract_mod_for_deepms2(mod_pep, mod_trans_dict: dict):
     if '[' not in mod_pep:
         return ''
     else:
-        strip_pep, mod_pos, mods = substring_finder(mod_pep)
+        strip_pep, mod_pos, mods = rk.find_substring(mod_pep)
 
         mod_info = []
         for pos, mod in zip(mod_pos, mods):

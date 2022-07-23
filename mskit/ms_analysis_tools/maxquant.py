@@ -8,31 +8,42 @@ import dask.dataframe as dd
 from mskit import rapid_kit as rk
 from ._maxquant import maxquant_constants
 
-"""
-检索结果的导入
-    1. 每种文件单独
-    2. 所有文件在一个文件夹中，读入指定文件关联 id
-
-"""
-
 
 def select_prec_from_multi_match(
         df: pd.DataFrame,
         max_match: int = 1,
         rt_window: int = 6,
         rt_group_col: typing.Union[tuple, list, str] = ('Experiment', 'Modified sequence'),
-        rt_baseline_func: typing.Callable = np.median,
+        rt_baseline_func: typing.Callable = np.nanmedian,
         rt_col: str = 'Retention time',
         restrict_group_col: typing.Union[tuple, list, str] = ('Experiment', 'Replicates', 'Prec'),
         extra_selection_col: str = 'Score',
         keep_explicit_intermediate_cols: bool = False,
         dask_npart: int = None,
+        dask_chunk_size: float = None,
         report: bool = False,
+        return_type: str = 'df',
 ):
     """
+    Select one report for a precursor in one run
+    This function will select a single report from muilti ones (if existed) in MaxQuant or MaxDIA evidence file, based on RT
+    In evidence file from MaxQuant search results, one precursor might have several reports (equal to several rows in file),
+    and the intensities, RTs, Scores might also different. Even if intensity and RT are same, score could also be different.
+    And sometimes same score could also result in different RT. Intensities might also be different or same with repeated times, like
+    i_1, i_2, i_1, i_1, i_3, i_2.
+
+    TODO: Should the on-going selected precursor also contributes to median RT calculation?
+          If 5 replicates, only 4 RTf from 4 runs, while n RTs from multi-reported one
+
     rt_window: int or None, full window in minute
     rt_main_group_col: str or None
+    return_type: df or idx
     """
+    if isinstance(rt_group_col, str):
+        rt_group_col = [rt_group_col]
+    if isinstance(restrict_group_col, str):
+        restrict_group_col = [restrict_group_col]
+
     if keep_explicit_intermediate_cols:
         rt_diff_col = 'RT-Diff'
     else:
@@ -43,12 +54,14 @@ def select_prec_from_multi_match(
     df = df.reset_index(drop=True)
     df[rt_diff_col] = df[rt_col].values - df.groupby(list(rt_group_col))[rt_col].transform(rt_baseline_func).values
     if dask_npart is not None:
-        _df = dd.from_pandas(df, npartitions=dask_npart)
+        _df = dd.from_pandas(df, npartitions=dask_npart, chunksize=dask_chunk_size)
         idx = _df.groupby(list(restrict_group_col))[rt_diff_col].apply(lambda x: x.abs().idxmin(), meta=('idx', 'int')).values.compute()
     else:
         idx = df.groupby(list(restrict_group_col))[rt_diff_col].apply(lambda x: x.abs().idxmin()).values
     df = df.loc[idx]
     df.index = df[raw_idx_col]
+    if return_type == 'idx':
+        return df.index
     df.index = df.index.rename(raw_idx_name)
     df = df.drop(columns=raw_idx_col)
     if not keep_explicit_intermediate_cols:

@@ -30,7 +30,9 @@ def calc_ion_mz(
         no_mod: bool = False,
         c_with_fixed_mod: bool = False,
         pep_preprocess_func: typing.Union[str, bool, typing.Callable] = None,
+        mass_offset: float = None,
         return_single_value_if_one_input: bool = True,
+        fill_na_if_unsupported: bool = False,
 ) -> typing.Union[float, np.ndarray]:
     """
     :param pep:
@@ -43,6 +45,7 @@ def calc_ion_mz(
     :param ion_charge:
         Ion charge state (precursor or fragment)
         Should have same number of components as `ion_type`
+        Use `0` to calculate mass instead of m/z
     :param ion_series_num:
         If `ion_type` is not None, this param should be provided to calc mz for certain fragments.
         Can be None, int, or list of None/int. Mz of multi ions will be returned if list is provided.
@@ -72,9 +75,12 @@ def calc_ion_mz(
         A function to preprocess input peptide before any other action
         For example: use `lambda x: x.replace('_', '').replace('.', '')` to remove all `.` and `_` at first
         The above example can also be used by setting this param to 'underscore_dot' or set to True
+    :param mass_offset:
+
     :param return_single_value_if_one_input:
         If True, will return a single value but not ndarray when input is single
         If False, multi inputs will lead to multi outputs as an n-d numpy array, and single input will lead to a 1-d array
+    :param fill_na_if_unsupported:
 
     :return: float or ndarray
         ion m/z
@@ -179,9 +185,9 @@ def calc_ion_mz(
     pep_len = len(stripped_pep)
 
     if ion_type is None or isinstance(ion_type, str):
-        if not isinstance(ion_charge, int):
+        if not isinstance(ion_charge, (int, np.integer)):
             raise ValueError(f'Expect an integer as `ion_charge`. Now is {ion_charge} with type as {type(ion_charge)}')
-        if ion_series_num is not None and not isinstance(ion_series_num, int):
+        if ion_series_num is not None and not isinstance(ion_series_num, (int, np.integer)):
             raise ValueError(f'Expect None or an integer as `ion_series_num`. Now is {ion_series_num} with type as {type(ion_series_num)}')
         ion_type = ('b',) if ion_type is None else (ion_type,)
         ion_charge = (ion_charge,)
@@ -223,6 +229,7 @@ def calc_ion_mz(
             _pos_to_mod_name[_p].append(_n)
 
         _mass = sum([Mass.ModMass[m] for m in _mods]) if (_mods := _pos_to_mod_name.get(0)) is not None else 0.
+        _mass = _mass + mass_offset if mass_offset is not None else _mass
         for pos in range(1, max(needed_ions_subset.keys()) + 1):
             _mass += Mass.ResMass[stripped_pep[pos - 1]]
             if c_with_fixed_mod and stripped_pep[pos - 1] == 'C':
@@ -234,9 +241,11 @@ def calc_ion_mz(
 
             for i_c, i_l, idx in needed_ions_subset[pos]:
                 this_mass = _mass + Mass.ProtonMass * i_c
-                if i_l is None or i_l.lower() == 'noloss':
+                if i_l is None:
                     pass
-                elif isinstance(i_l, (float, int)):
+                elif isinstance(i_l, str) and (i_l.lower() == 'noloss' or i_l == ''):
+                    pass
+                elif isinstance(i_l, (float, int, np.inexact, np.integer)):
                     this_mass -= i_l
                 else:
                     for loss in i_l.strip(';').split(';'):
@@ -256,6 +265,7 @@ def calc_ion_mz(
 
         _mass = sum([Mass.ModMass[m] for m in _mods]) if (_mods := _pos_to_mod_name.get(0)) is not None else 0.
         _mass += CompoundMass.CompoundMass['H2O']  # diff with b
+        _mass = _mass + mass_offset if mass_offset is not None else _mass
         for pos in range(1, max(needed_ions_subset.keys()) + 1):
             _mass += Mass.ResMass[stripped_pep[pos - 1]]
             if c_with_fixed_mod and stripped_pep[pos - 1] == 'C':
@@ -265,9 +275,11 @@ def calc_ion_mz(
 
             for i_c, i_l, idx in needed_ions_subset[pos]:
                 this_mass = _mass + Mass.ProtonMass * i_c
-                if i_l is None or i_l.lower() == 'noloss':
+                if i_l is None:
                     pass
-                elif isinstance(i_l, (float, int)):
+                elif isinstance(i_l, str) and (i_l.lower() == 'noloss' or i_l == ''):
+                    pass
+                elif isinstance(i_l, (float, int, np.inexact, np.integer)):
                     this_mass -= i_l
                 else:
                     for loss in i_l.strip(';').split(';'):
@@ -281,15 +293,33 @@ def calc_ion_mz(
         return result
 
 
+def ion_mz_from_mass(mass: float, charge: int):
+    pass
+
+
 class MassCalc(object):
     ResMass = copy.deepcopy(Mass.ResMass)
     ModMass = copy.deepcopy(Mass.ModMass)
 
     def __init__(self):
+        """
+
+        """
+
         self._cache = dict()
 
         # if c_with_fix_mod:
         #     self.ResMass['C'] = self.ResMass['C+']
+
+    def valid_mass(self):
+        """
+        candidate_mods
+        mass_tol
+        mz_tol
+
+        :return:
+        """
+        pass
 
 
 def calc_prec_mz(pep: str, charge: int = None, mod=None) -> float:

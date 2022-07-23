@@ -28,12 +28,12 @@ REQUIRED = [
     'scikit-learn',
     'requests',
     'prettytable', 'tqdm',
+    'joblib', 'dask', 'distributed',
 ]
 
 EXTRAS = {
-    'MSDataAccess': ['pymzml', 'pyteomics'],
+    'MSDataAccess': ['pymzml', 'pyteomics', 'pymsfilereader'],
     'SpeedUp': ['numba'],
-    'Parallel': ['joblib', 'dask', 'distributed'],
     'Image': ['opencv-python'],
     'torch': ['pytorch'],
     'tensorflow': ['tensorflow-gpu'],

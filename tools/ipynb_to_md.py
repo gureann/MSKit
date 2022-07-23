@@ -111,15 +111,23 @@ def write_md_title(f, title, md_filename):
 
 
 def write_one_item(f, content, cell_idx):
-    if isinstance(content, str):
-        content = [content]
-    if isinstance(content, (list, tuple)):
-        for c in content:
-            f.write(c)
+    try:
+        if isinstance(content, str):
+            content = [content]
+        if isinstance(content, (list, tuple)):
+            for c in content:
+                f.write(c)
+            f.write('\n')
+        elif content is None:
+            pass
+        else:
+            raise ValueError(f'[Cell idx {cell_idx}] Content is not one of `str, list, tuple`. Now {type(content)}: {content}')
         f.write('\n')
-    else:
-        raise ValueError(f'[Cell idx {cell_idx}] Content is not one of `str, list, tuple`. Now {type(content)}: {content}')
-    f.write('\n')
+    except Exception as e:
+        print(f)
+        print(content)
+        print(cell_idx)
+        raise e
 
 
 def parse_and_save_img(b64_img, img_save_path):
@@ -128,7 +136,7 @@ def parse_and_save_img(b64_img, img_save_path):
 
 
 def write_to_md(md_path, img_folder, parsed_text, md_title):
-    with open(md_path, 'w') as f:
+    with open(md_path, 'w', encoding='utf-8') as f:
         write_md_title(f, md_title, os.path.basename(md_path))
         for idx, t in enumerate(parsed_text):
             if t[1] == 'text':

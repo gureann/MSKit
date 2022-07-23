@@ -89,6 +89,7 @@ def add_im_to_blib(
     con.commit()
 
     table_content = [list(c) for c in table_content]
+    im_not_found_count = 0
     for i, c in enumerate(table_content):
         modpep, charge = c[2], c[3]
         if skyline_intmodpep_to_input_modpep_map is None:
@@ -100,7 +101,11 @@ def add_im_to_blib(
         else:
             modpep = skyline_intmodpep_to_input_modpep_map(modpep)
 
-        table_content[i][14] = prec_to_im_map[(modpep, charge)]
+        _value = prec_to_im_map.get((modpep, charge))
+        if _value is None:
+            im_not_found_count += 1
+
+        table_content[i][14] = _value
         table_content[i][17] = 2
 
     sql_fill_in_refspec_table = f"INSERT INTO RefSpectra VALUES ({', '.join(['?'] * 23)})"

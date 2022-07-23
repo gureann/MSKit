@@ -5,7 +5,7 @@ from collections import Counter
 import numpy as np
 import pandas as pd
 
-from mskit.ms_pred.deep_phospho import sn_modpep_to_intseq
+from mskit.ms_pred.deepphospho import sn_modpep_to_intseq
 from .sn_constant import *
 from .utils import *
 
@@ -14,7 +14,7 @@ try:
 except ModuleNotFoundError:
     pass
 
-from mskit import rapid_kit
+from mskit import rapid_kit as rk
 from mskit.calc import normalize_intensity
 
 
@@ -47,7 +47,7 @@ class SpectronautLibrary(object):
         'FragmentMz',
         'RelativeIntensity',
     ]
-    LibBasicCols_WithoutFrag = rapid_kit.subtract_list(LibBasicCols, FragInfoCols)
+    LibBasicCols_WithoutFrag = rk.subtract_list(LibBasicCols, FragInfoCols)
     LibBasicCols_WithPG = [*LibBasicCols, 'ProteinGroups']
 
     def __init__(self, lib=None, spectronaut_version=14, pd_low_mem=False):
@@ -330,7 +330,7 @@ class SpectronautLibrary(object):
         for prec, df in self._lib_df.groupby(prec_col):
             modpep, charge = prec.split('.')
             output_key = df.iloc[0][output_key_col]
-            strip_pep, mod_sites, mods = rapid_kit.substring_finder(modpep.replace('_', ''))
+            strip_pep, mod_sites, mods = rk.find_substring(modpep.replace('_', ''))
             phos_mod_site = [mod_sites[i] for i, mod in enumerate(mods) if mod == '[Phospho (STY)]']
             st_phosmod_site = [s for s in phos_mod_site if strip_pep[s - 1] in ('S', 'T')]
             if st_phosmod_site:
@@ -596,9 +596,9 @@ class SpectronautLibrary(object):
         target protein may be consist of protein groups, which are separated by semicolons
         :return:
         """
-        target_list = rapid_kit.process_list_or_file(target_protein_list)
+        target_list = rk.process_list_or_file(target_protein_list)
         target_set = set(target_list)
-        self._lib_df = self._lib_df[self._lib_df.apply(rapid_kit.protein_groups_match, col='ProteinGroups', args=(target_set,), axis=1)]
+        self._lib_df = self._lib_df[self._lib_df.apply(rk.protein_groups_match, col='ProteinGroups', args=(target_set,), axis=1)]
 
     def library_remove_target(self, target_protein_list):
         """
@@ -607,9 +607,9 @@ class SpectronautLibrary(object):
         196 ms ± 97.3 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
         :return:
         """
-        target_list = rapid_kit.process_list_or_file(target_protein_list)
+        target_list = rk.process_list_or_file(target_protein_list)
         target_set = set(target_list)
-        self._lib_df = self._lib_df[~self._lib_df.apply(rapid_kit.protein_groups_match, col='ProteinGroups', args=(target_set,), axis=1)]
+        self._lib_df = self._lib_df[~self._lib_df.apply(rk.protein_groups_match, col='ProteinGroups', args=(target_set,), axis=1)]
 
     def library_remove_target_re(self, target_protein_list):
         """

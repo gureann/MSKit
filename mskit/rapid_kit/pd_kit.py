@@ -1,4 +1,4 @@
-import os.path
+import os
 import re
 import sys
 import typing
@@ -20,7 +20,7 @@ def dask_series_map(
     if sys.getsizeof(map_dict) > map_size_threshold:
         if client is None:
             raise ValueError(
-                f'The size of input map is larger than threshold {scatter_map_size_threshold}, '
+                f'The size of input map is larger than threshold {map_size_threshold}, '
                 f'a client is needed to pass in this function to pre-submit large data')
 
         def make_mapping():

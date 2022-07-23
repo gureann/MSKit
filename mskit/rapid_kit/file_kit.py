@@ -11,8 +11,29 @@ import pandas as pd
 from .data_struc_kit import sum_list
 
 
+def read_file_before_n_symbol(
+        filepath: os.PathLike,
+        symbol: str = '\n',
+        n: int = 1,
+        openmode: str = 'r',
+        encoding: str = 'utf8',
+):
+    _c = 0
+    with open(filepath, openmode, encoding=encoding) as f:
+        while True:
+            char = f.read(1)
+            if char == symbol:
+                _c += 1
+            if _c == n:
+                break
+        end_pos = f.tell()
+        f.seek(0)
+        return f.read(end_pos)
+
+
 def split_file_nparts(
         filepath: os.PathLike,
+        output_folder: os.PathLike = None,
         expected_nparts: int = 10,
         required_part_idx: tuple = None,
         start_pos: int = 0,
@@ -22,6 +43,10 @@ def split_file_nparts(
 ):
     dir_name = os.path.dirname(filepath)
     basename, suffix = os.path.splitext(os.path.basename(filepath))
+    if output_folder is None:
+        output_folder = dir_name
+    else:
+        os.makedirs(output_folder, exist_ok=True)
     with open(filepath, openmode) as f:
         size = f.seek(0, 2)
         part_size = int(np.ceil(size / expected_nparts))

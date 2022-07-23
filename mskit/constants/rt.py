@@ -1,6 +1,33 @@
 import numpy as np
 import scipy.stats
 
+from mskit.sequence.fasta import write_fasta
+
+
+Biognosys_iRT11_FusionSeq = (
+    'LGGNEQVTRYILAGVENSKGTFIIDPGGVIRGTFIIDPAAVIRGAGSSEPVTGLDAKTPVISGGPYEYRVEATFGVDESNAKTPVITGAPYEYRDGLDAASYYAPVRADVTPADFSEWSKLFLQFGAQGSPFLK'
+)
+
+
+def generate_irt_fusion_fasta(
+        path,
+        full_title: str = None,
+        prot_db_type: str = 'sp',
+        accession: str = 'iRTKitWRFusion',
+        entry: str = 'iRTKitWRFusion_iRTKitWRFusion',
+        title_desc: str = 'iRTKitWRFusion',
+        title_os: str = 'iRTKitWRFusion',
+        title_ox: str = '32767',
+        title_gn: str = 'iRTKitWRFusion',
+        title_pe: str = '1',
+        title_sv: str = '1',
+):
+    if full_title is None:
+        full_title = f'>{prot_db_type}|{accession}|{entry} {title_desc} OS={title_os} OX={title_ox} GN={title_gn} PE={title_pe} SV={title_sv}'
+
+    write_fasta({full_title: Biognosys_iRT11_FusionSeq}, file_path=path, seq_line_max_char=None)
+
+
 """
 From irt-kit-reference-sheet.xls
 """
@@ -57,6 +84,6 @@ Q1 monoisotopic	Q1 average	Q3	relative intensity (approximate, TSQ-Vantage)	rank
 776.929	777.412	504.319	80	3	2	y	1	4	LFLQFGAQGSPFLK	iRT Kit_l	LFLQFGAQGSPFLK.y4.1+\
 """
 
-irt_to_rt = np.polyfit(df['iRT'], df['RT'], deg=1)
-rt_to_irt = np.polyfit(df['RT'], df['iRT'], deg=1)
-rt_irt_corr = scipy.stats.pearsonr(df['RT'], df['iRT'])
+# irt_to_rt = np.polyfit(df['iRT'], df['RT'], deg=1)
+# rt_to_irt = np.polyfit(df['RT'], df['iRT'], deg=1)
+# rt_irt_corr = scipy.stats.pearsonr(df['RT'], df['iRT'])

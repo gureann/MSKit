@@ -52,6 +52,21 @@ def split_str_with_symbol_included_substring(
     return split_str
 
 
+def get_para_sep(
+        name,
+        fillin_symbol: str = '-',
+        symbol_num: typing.Union[int, list[int]] = 15,
+        space_around_name: typing.Union[int, list[int]] = 1,
+) -> str:
+    if isinstance(symbol_num, int):
+        symbol_num = (symbol_num, symbol_num)
+    if isinstance(space_around_name, int):
+        space_around_name = (space_around_name, space_around_name)
+    prefix = fillin_symbol * symbol_num[0] + ' ' * space_around_name[0] if symbol_num[0] != 0 else ''
+    suffix = ' ' * space_around_name[1] + fillin_symbol * symbol_num[1] if symbol_num[1] != 0 else ''
+    return f'{prefix}{name}{suffix}'
+
+
 def get_title2idx_dict(title_content: str) -> dict:
     title_dict = dict([(__, _) for _, __ in enumerate(
         title_content.strip('\n').split('\t'))])
@@ -152,6 +167,30 @@ def fillin_annotation(
         existed_anno_start_char: str = None,
         existed_anno_end_char: str = None
 ) -> str:
+    """
+    TODO param target_pos_char = None, check if char on target pos is expected
+    TODO an error when existed_anno_start_char ~~existed on pos 0~~ existed anywhere
+
+    :param s:
+    :param anno_pos:
+    :param anno_text:
+    :param existed_anno_start_char:
+    :param existed_anno_end_char:
+
+    :return:
+
+    s = 'AYHPAYTETMSMGGGSSHGGGQQYVPFATSSGSLR'
+    # len(s) = 35
+    fillin_annotation(
+        s,
+        (0, 10, 12, 34, 35, 35),
+        [f'({_})' for _ in ['Acetyl', 'Oxidation', 'Oxidation', '34', '35', '35-2']],
+        existed_anno_start_char='(',
+        existed_anno_end_char=')'
+    )
+    -> '(Acetyl)AYHPAYTETM(Oxidation)SM(Oxidation)GGGSSHGGGQQYVPFATSSGSL(34)R(35)(35-2)'
+    """
+
     if isinstance(anno_pos, (str, int)):
         anno_pos = [int(anno_pos)]
     if isinstance(anno_text, str):
