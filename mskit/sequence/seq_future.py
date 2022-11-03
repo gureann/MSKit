@@ -4,11 +4,105 @@ from itertools import combinations
 import pandas as pd
 from tqdm import tqdm
 
-from mskit import rapid_kit
+from mskit import rapid_kit as rk
+
+
+def extract_kmer_seq_from_ptm_result(
+        data: pd.DataFrame | list | tuple,
+        ref_fasta: dict,
+        around_n: int = 15,
+
+        mod_mould: str = '(',
+        target_mod: str | tuple | list = None,
+        df_modpep_col: str = 'ModifiedPeptide',
+        df_protein_col: str = 'ProteinGroup',
+
+        attach_mod_on_result_key: bool = False,
+) -> dict:
+    """
+
+    :param data: DataFrame or list or tuple
+        if df, two columns should be presented for modified peptide and protein group, and the column names should be given as two params
+        if list or tuple, should be nested list/tuple, and each element should be like (modified_peptide, protein)
+    :param ref_fasta:
+    :param around_n: int
+        number of extracted AAs on one-side
+    :param mod_mould:
+    :param target_mod:
+    :param df_modpep_col: str
+        the name of column for storing modified peptide if df is given
+    :param df_protein_col:
+        the name of column for storing protein if df is given
+    :param attach_mod_on_result_key:
+
+    :return: dict
+        Keys: {modified_peptide}-{mod_pos_on_pep} or {modified_peptide}-{mod_pos_on_pep}_{mod_name}
+        Values: Kmer-seq
+    """
+
+    if mod_mould in ['parentheses', 'pare', '(']:
+        mould_chars = ('(', ')')
+    elif mod_mould in ['brackets', 'square brackets', 'medium brackets', 'brac', '[']:
+        mould_chars = ('[', ']')
+    elif mod_mould in ['curly brackets', 'curly', '{']:
+        mould_chars = ('{', '}')
+    else:
+        raise ValueError(f'Current value {mod_mould} for param `mod_mould` is not supported')
+    target_mod = [target_mod] if isinstance(target_mod, str) else target_mod
+
+    if isinstance(data, pd.DataFrame):
+        data = data[[df_modpep_col, df_protein_col]].drop_duplicates(df_modpep_col).values
+
+    modpep_to_kmerseq = dict()
+    viewed_modpep_prot_pair = []
+    for modpep, prot in data:
+        if (modpep, prot) in viewed_modpep_prot_pair:
+            continue
+
+        prot_seq = ref_fasta.get(prot)
+        if prot_seq is None:
+            prot_seq = ref_fasta.get(prot.split(';')[0])
+        if prot_seq is None:
+            raise ValueError(f'Protein {prot} (has modified peptide {modpep}) can not be found in given reference FASTA')
+
+        stripped_pep, ext_pos, ext_mod = rk.find_substring(modpep, *mould_chars, keep_start_end_char=False)
+        try:
+            pep_pos_on_prot = prot_seq.index(stripped_pep) + 1
+        except ValueError:
+            raise ValueError(f'Peptide sequence {stripped_pep} can not match on protein {prot}. (original input ({modpep}, {prot}))')
+
+        for pos, mod in zip(ext_pos, ext_mod):
+            if (target_mod is not None) and (mod not in target_mod):
+                continue
+
+            mod_pos_on_prot = pos + pep_pos_on_prot - 1
+
+            if mod_pos_on_prot > around_n:
+                prev_seq = prot_seq[mod_pos_on_prot - around_n - 1: mod_pos_on_prot - 1]
+            else:
+                prev_seq = '_' * (around_n - mod_pos_on_prot + 1) + prot_seq[: mod_pos_on_prot - 1]
+
+            back_seq = prot_seq[mod_pos_on_prot: mod_pos_on_prot + around_n]
+            if len(back_seq) < around_n:
+                back_seq = back_seq + '_' * (around_n - len(back_seq))
+
+            k_mer_seq = f'{prev_seq}{prot_seq[mod_pos_on_prot - 1]}{back_seq}'
+            if attach_mod_on_result_key:
+                _result_key = f'{modpep}-{pos}_{mod}'
+            else:
+                _result_key = f'{modpep}-{pos}'
+
+            modpep_to_kmerseq[_result_key] = k_mer_seq
+
+        viewed_modpep_prot_pair.append((modpep, prot))
+    return modpep_to_kmerseq
 
 
 def extract_seq_window(seq, fasta_dict: dict, n=7, ex_pad_symbol='_'):
     """
+    Iterate the whole provided fasta to first find all potential matched protein entry and positiosn, and extract all possiable results
+
+
     TODO fasta dict 可以传入 fasta parser
     TODO 可以指定蛋白序列 / 指定蛋白 acc
     """
@@ -56,14 +150,14 @@ def batch_add_target_mod(pep_list, mod_type: dict = None, mod_processor=None):
     TODO : This may result in some redundant results (dont know why)
     """
     modpep_list = []
-    for pep in rapid_kit.drop_list_duplicates(pep_list):
+    for pep in rk.drop_list_duplicates(pep_list):
         modpep_list.extend(add_target_mod(pep, mod_type, mod_processor))
-    return rapid_kit.drop_list_duplicates(modpep_list)
+    return rk.drop_list_duplicates(modpep_list)
 
 
 def batch_add_target_charge(modpep_list, charge=(2, 3)):
     prec_list = []
-    for modpep in rapid_kit.drop_list_duplicates(modpep_list):
+    for modpep in rk.drop_list_duplicates(modpep_list):
         prec_list.extend(add_target_charge(modpep, charge))
     return prec_list
 
@@ -117,6 +211,6 @@ def add_target_charge(modpep, charge=(2, 3)):
         charge = (charge,)
     prec_list = []
     for c in charge:
-        _prec = rapid_kit.assemble_prec(modpep, c)
+        _prec = rk.assemble_prec(modpep, c)
         prec_list.append(_prec)
     return prec_list

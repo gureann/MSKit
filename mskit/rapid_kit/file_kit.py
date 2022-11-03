@@ -28,7 +28,7 @@ def read_file_before_n_symbol(
                 break
         end_pos = f.tell()
         f.seek(0)
-        return f.read(end_pos)
+        return f.read(end_pos - n)
 
 
 def split_file_nparts(

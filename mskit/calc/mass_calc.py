@@ -65,7 +65,10 @@ def calc_ion_mz(
             will use '{' as the starting char and '}' as the ending one
     :param mods:
         Explicitly provided modifications. When this param is not None, modifications will not be parsed from input peptide text.
-        Can be str like `1,Carbamidomethyl;3,Oxidation;`, or list like `[(1, 'Carbamidomethyl'), (3, 'Oxidation')]`
+        Can be str like
+            `1,Carbamidomethyl;3,Oxidation;`,
+            or list like `[(1, 'Carbamidomethyl'), (3, 'Oxidation')]`,
+            or list with float as mod mass `[(1, 57.0214637), (3, 79.9663304084)]`
     :param no_mod:
         If set to True, input `pep` will be regarded as stripped peptide, and no modification on it (param `c_with_fixed_mod` will still have effect)
     :param c_with_fixed_mod:
@@ -136,7 +139,7 @@ def calc_ion_mz(
     )
     -> 529.2252677999999
 
-    calc_ion_mz(
+    mskit.calc.calc_ion_mz(
         '_[Acetyl (Protein N-term)]SGSS[Phospho (STY)]SVAAMKK_',
         [3, 4, 1, 1, 1, 2, 1, 1],
         ion_type=[None, None, 'y', 'y', 'b', 'y', 'b', 'y'],
@@ -146,6 +149,26 @@ def calc_ion_mz(
     )
     -> array([392.17730633, 294.3847989 , 901.42128059, 450.34558439,
        529.2252678 , 523.24102465, 930.434943  , 406.24825189])
+
+   # The previous one equals to the following two ways to set modifications
+    mskit.calc.calc_ion_mz(
+        'SGSSSVAAMKK',
+        [3, 4, 1, 1, 1, 2, 1, 1],
+        ion_type=[None, None, 'y', 'y', 'b', 'y', 'b', 'y'],
+        ion_series_num=[None, None, 8, 5, 6, 10, 10, 3],
+        ion_loss_type=[None, None, 'Noloss', '1,H3PO4', '1,H3PO4', 'noloss', '1,H3PO4', None],
+        mods=[(0, 'Acetyl (Protein N-term)'), (4, 'Phospho (STY)')],
+        pep_preprocess_func='underscore_dot'
+    )
+    mskit.calc.calc_ion_mz(
+        'SGSSSVAAMKK',
+        [3, 4, 1, 1, 1, 2, 1, 1],
+        ion_type=[None, None, 'y', 'y', 'b', 'y', 'b', 'y'],
+        ion_series_num=[None, None, 8, 5, 6, 10, 10, 3],
+        ion_loss_type=[None, None, 'Noloss', '1,H3PO4', '1,H3PO4', 'noloss', '1,H3PO4', None],
+        mods=[(0, 42.0105646863), (4, 79.9663304084)],
+        pep_preprocess_func='underscore_dot'
+    )
 
     """
 
@@ -228,14 +251,14 @@ def calc_ion_mz(
         for _p, _n in zip(mod_poss, mod_names):
             _pos_to_mod_name[_p].append(_n)
 
-        _mass = sum([Mass.ModMass[m] for m in _mods]) if (_mods := _pos_to_mod_name.get(0)) is not None else 0.
+        _mass = sum([(m if isinstance(m, float) else Mass.ModMass[m]) for m in _mods]) if (_mods := _pos_to_mod_name.get(0)) is not None else 0.
         _mass = _mass + mass_offset if mass_offset is not None else _mass
         for pos in range(1, max(needed_ions_subset.keys()) + 1):
             _mass += Mass.ResMass[stripped_pep[pos - 1]]
             if c_with_fixed_mod and stripped_pep[pos - 1] == 'C':
                 _mass += Mass.ModMass['Carbamidomethyl']
             if (_mods := _pos_to_mod_name.get(pos)) is not None:
-                _mass += sum([Mass.ModMass[m] for m in _mods])
+                _mass += sum([(m if isinstance(m, float) else Mass.ModMass[m]) for m in _mods])
             if pos == pep_len:
                 _mass += CompoundMass.CompoundMass['H2O']  # diff with y
 
@@ -263,7 +286,7 @@ def calc_ion_mz(
             else:
                 _pos_to_mod_name[pep_len + 1 - _p].append(_n)  # diff with b
 
-        _mass = sum([Mass.ModMass[m] for m in _mods]) if (_mods := _pos_to_mod_name.get(0)) is not None else 0.
+        _mass = sum([(m if isinstance(m, float) else Mass.ModMass[m]) for m in _mods]) if (_mods := _pos_to_mod_name.get(0)) is not None else 0.
         _mass += CompoundMass.CompoundMass['H2O']  # diff with b
         _mass = _mass + mass_offset if mass_offset is not None else _mass
         for pos in range(1, max(needed_ions_subset.keys()) + 1):
@@ -271,7 +294,7 @@ def calc_ion_mz(
             if c_with_fixed_mod and stripped_pep[pos - 1] == 'C':
                 _mass += Mass.ModMass['Carbamidomethyl']
             if (_mods := _pos_to_mod_name.get(pos)) is not None:
-                _mass += sum([Mass.ModMass[m] for m in _mods])
+                _mass += sum([(m if isinstance(m, float) else Mass.ModMass[m]) for m in _mods])
 
             for i_c, i_l, idx in needed_ions_subset[pos]:
                 this_mass = _mass + Mass.ProtonMass * i_c

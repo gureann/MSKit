@@ -8,6 +8,14 @@ Biognosys_iRT11_FusionSeq = (
     'LGGNEQVTRYILAGVENSKGTFIIDPGGVIRGTFIIDPAAVIRGAGSSEPVTGLDAKTPVISGGPYEYRVEATFGVDESNAKTPVITGAPYEYRDGLDAASYYAPVRADVTPADFSEWSKLFLQFGAQGSPFLK'
 )
 
+possible_irt_names = [
+    'iRT', 'iRTkit', 'iRT-Kit_WR_fusion',
+    'Biognosys standards',
+    'sp|iRT|iRT',
+    'sp|iRT-Kit_WR_fusion|iRT-Kit_WR_fusion',
+    'Biognosys|iRT-Kit_WR_fusion|iRT-Kit_WR_fusion',
+]
+
 
 def generate_irt_fusion_fasta(
         path,

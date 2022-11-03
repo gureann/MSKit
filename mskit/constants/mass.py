@@ -58,6 +58,7 @@ class Mass:
                }
 
     ProtonMass = 1.0072766  # H+
+    ElectronMass = ElementMass.Mono['H'] - ProtonMass
     IsotopeMass = 1.003
 
     ModMass = {

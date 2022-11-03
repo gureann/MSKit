@@ -20,7 +20,7 @@ EMAIL = __info__.__email__
 AUTHOR = __info__.__author__
 VERSION = __info__.__version__
 LICENSE = __info__.__license__
-REQUIRES_PYTHON = '>=3.9.0'
+REQUIRES_PYTHON = '>=3.10.0'
 
 REQUIRED = [
     'numpy', 'pandas', 'scipy',
@@ -52,7 +52,6 @@ classifiers = [
     'Development Status :: 2 - Pre-Alpha',
 
     'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
 
     'Topic :: Scientific/Engineering :: Bio-Informatics',

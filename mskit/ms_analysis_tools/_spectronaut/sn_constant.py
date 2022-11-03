@@ -6,6 +6,9 @@ Shorthand:
 Spectronaut -> SN
 
 """
+import pandas as pd
+
+from mskit import rapid_kit as rk
 
 
 class LossType(object):
@@ -135,6 +138,9 @@ SN_NormalReport_Dtype = {
     'PG.MS1Quantity': 'float64',
     'PG.Meta': 'object',
     'PG.OrganismId': 'object',
+    'PG.WBGene': 'object',
+    'PG.Locus': 'object',
+    'PG.Status': 'object',
     'PG.MS2Quantity': 'float64',
     'PG.NrOfModifiedSequencesUsedForQuantification': 'int64',
     'PG.Quantity': 'float64',
@@ -153,7 +159,8 @@ SN_NormalReport_Dtype = {
     'PEP.UsedForProteinGroupQuantity': 'bool',
 
     'EG.IntModifiedPeptide': 'object',
-    'FG.IonMobility': 'float64',
+    'FG.IonMobility': 'float64',  # Used in SN15
+    'FG.ApexIonMobility': 'float64',  # Used in SN16
     'EG.iRTPredicted': 'float64',
     'EG.IsDecoy': 'bool',
     'EG.ModifiedPeptide': 'object',
@@ -173,15 +180,6 @@ SN_NormalReport_Dtype = {
     'EG.iRTEmpirical': 'float64',
     'EG.MeanApexRT': 'float64',
     'EG.MeanTailingFactor': 'float64',
-    'EG.PTMPositions [Carbamidomethyl (C)]': 'float64',
-    'EG.PTMPositions [Oxidation (M)]': 'float64',
-    'EG.PTMPositions [Acetyl (Protein N-term)]': 'float64',
-    'EG.PTMProbabilities [Carbamidomethyl (C)]': 'float64',
-    'EG.PTMProbabilities [Oxidation (M)]': 'float64',
-    'EG.PTMProbabilities [Acetyl (Protein N-term)]': 'float64',
-    'EG.PTMSites [Carbamidomethyl (C)]': 'float64',
-    'EG.PTMSites [Oxidation (M)]': 'float64',
-    'EG.PTMSites [Acetyl (Protein N-term)]': 'float64',
     'EG.PeakWidth': 'float64',
     'EG.PeakWidth (iRT)': 'float64',
     'EG.RTPredicted': 'float64',
@@ -195,10 +193,10 @@ SN_NormalReport_Dtype = {
     'EG.MinProfileQvalue': 'float64',
     'EG.PercentileQvalue': 'float64',
     'EG.HasLocalizationInformation': 'bool',
-    'EG.ProteinPTMLocations': 'float64',
+    'EG.ProteinPTMLocations': 'object',
     'EG.PTMAssayCandidateScore': 'float64',
     'EG.PTMAssayProbability': 'float64',
-    'EG.PTMLocalizationProbabilities': 'object',
+    'EG.PTMLocalizationProbabilities': 'str',
     'EG.IsImputed': 'bool',
     'EG.NormalizationFactor': 'float64',
     'EG.TargetQuantity (Settings)': 'float64',
@@ -237,6 +235,50 @@ SN_NormalReport_Dtype = {
     'FG.TheoreticalMz': 'float64',
     'FG.Tolerance': 'float64',
 }
+
+
+def get_sn_report_ptms(
+        file_or_df,
+        ptm_col_prefix: str | tuple | list = ('EG.PTMPositions', 'EG.PTMProbabilities', 'EG.PTMSites'),
+):
+    if isinstance(file_or_df, pd.DataFrame):
+        title = file_or_df.columns.tolist()
+    else:
+        title = rk.read_file_before_n_symbol(
+            file_or_df, symbol='\n', n=1, openmode='r', encoding='utf8'
+        ).strip('\n').split('\t')
+    ptms = []
+    for t in title:
+        if any([prefix in t for prefix in ptm_col_prefix]):
+            for prefix in ptm_col_prefix:
+                t = t.replace(prefix, '')
+            ptms.append(t.strip(' '))
+    return sorted(set(ptms))
+
+
+def get_sn_report_ptm_dtypes(
+        file_or_df_or_list,
+        ptm_col_prefix: str | tuple | list = ('EG.PTMPositions', 'EG.PTMProbabilities', 'EG.PTMSites'),
+):
+    """
+    PTM position column like `EG.PTMPositions [Phospho (STY)]` could be single integer, or multi integers joined with `;`, or nan (e.g. `4;6;7;16`)
+    PTM probability column like `EG.PTMProbabilities [Phospho (STY)]` could be single float, or multi floats joined with `;`, or nan (e.g. `0.14;0.03;0.81;0.03`)
+    PTM sites column like `EG.PTMSites [Phospho (STY)]` could be single char, or multi chars joined with `;`, or nan (e.g. `S;Y;T;T`)
+
+    :param file_or_df_or_list:
+    :param ptm_col_prefix:
+    :return:
+    """
+    if not isinstance(file_or_df_or_list, (list, set, tuple)):
+        ptms = get_sn_report_ptms(file_or_df_or_list, ptm_col_prefix=ptm_col_prefix)
+    else:
+        ptms = file_or_df_or_list
+    return dict(rk.sum_list(
+        [
+            [(f'{prefix} {ptm}', 'object') for prefix in ptm_col_prefix]
+            for ptm in ptms
+        ]
+    ))
 
 
 class SNMod(object):

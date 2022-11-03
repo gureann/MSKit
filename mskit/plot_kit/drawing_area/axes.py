@@ -97,6 +97,10 @@ def init_weighted_axes(
         If not defined, will init a figure
     :param ax_args:
         will be passed to function for init new ax (fig.add_axes or ax.inset_axes)
+
+    sharex: 'all', 'col', `[(1, 3, 5), (0, 2)]`, `2/2-2/4;3/1-3/3;2/0-2/1`
+
+
     :return:
     """
     container, new_ax_method = init_container(container=container, **fig_args)

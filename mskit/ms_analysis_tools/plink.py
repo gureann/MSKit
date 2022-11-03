@@ -287,21 +287,16 @@ class PLinkResult(object):
 
             site_level_result = df.copy()
             site_level_cols = [
-                'SortedProteinLink', 'Protein_Type', 'LinkType',
+                'SortedProteinLink', 'SortedStandardProteinLink', 'Protein_Type', 'LinkType', 'DefinedIdentifier',
                 'Proteins', 'SingleProteinLink', 'ProteinLinkRank',
                 'Source', 'RawIndex',
-                'RawProtein_1', 'RawProtein_2',
+                'RawProtein_1', 'RawProtein_2', 'StandardProtein_1', 'StandardProtein_2',
                 'RawProteinSite_1', 'RawProteinSite_2',
                 'RawProteinSiteNeedReverse',
                 'Best_Evalue', 'Score_In_Best_Evalue', 'Best_Score',
                 'SAS', 'Euclidean',
             ]
-            if 'DefinedIdentifier' in site_level_result.columns:
-                site_level_cols.insert(3, 'DefinedIdentifier')
-            if 'SortedStandardProteinLink' in site_level_result.columns:
-                site_level_cols.insert(1, 'SortedStandardProteinLink')
-                site_level_cols.insert(10, 'StandardProtein_1')
-                site_level_cols.insert(11, 'StandardProtein_2')
+            site_level_cols = site_level_result.columns.intersection(site_level_cols)
 
             site_level_result = site_level_result[site_level_cols]
             site_level_result = (site_level_result
@@ -330,12 +325,12 @@ class PLinkResult(object):
 
             pep_level_result = df.copy()
             pep_level_cols = [
-                'SortedProteinLink', 'SortedPeptideLink',
-                'Protein_Type', 'LinkType',
+                'SortedProteinLink', 'SortedStandardProteinLink', 'SortedPeptideLink',
+                'Protein_Type', 'LinkType', 'DefinedIdentifier',
                 'Proteins', 'SingleProteinLink', 'ProteinLinkRank',
                 'Peptide', 'Modifications', 'Title', 'Peptide_Mass',
                 'Source', 'RawIndex',
-                'RawProtein_1', 'RawProtein_2',
+                'RawProtein_1', 'RawProtein_2', 'StandardProtein_1', 'StandardProtein_2',
                 'RawProteinSite_1', 'RawProteinSite_2',
                 'RawProteinSiteNeedReverse',
                 'RawPeptide_1', 'RawPeptide_2',
@@ -343,12 +338,7 @@ class PLinkResult(object):
                 'Best_Evalue', 'Score_In_Best_Evalue', 'Best_Score',
                 'SAS', 'Euclidean',
             ]
-            if 'DefinedIdentifier' in pep_level_result.columns:
-                pep_level_cols.insert(4, 'DefinedIdentifier')
-            if 'SortedStandardProteinLink' in pep_level_result.columns:
-                pep_level_cols.insert(1, 'SortedStandardProteinLink')
-                pep_level_cols.insert(15, 'StandardProtein_1')
-                pep_level_cols.insert(16, 'StandardProtein_2')
+            pep_level_cols = pep_level_result.columns.intersection(pep_level_cols)
             pep_level_result = pep_level_result[pep_level_cols]
             pep_level_result = (pep_level_result
                                 .drop_duplicates(['Source', 'SortedProteinLink', 'SortedPeptideLink'])
